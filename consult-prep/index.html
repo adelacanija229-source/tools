@@ -338,27 +338,15 @@
     googleBtn.href = googleImg(main);
     [naverBtn, googleBtn].forEach(a => a.setAttribute('aria-disabled', 'false'));
 
-    // 안 나올 때 쓸 갈래들.
-    const m2 = toM2(raw);
-    const links = [];
-
     // 자료가 전용면적으로 올라와 있으면 평 검색으론 안 걸립니다.
+    const m2 = toM2(raw);
     if (m2) {
       const alt = [region, name, m2 + '㎡', '평면도'].filter(Boolean).join(' ');
-      links.push(`<a href="${naverImg(alt)}" target="_blank" rel="noopener">${m2}㎡로 검색</a>`);
+      fallback.innerHTML = `안 나오면 → <a href="${naverImg(alt)}" target="_blank" rel="noopener">${m2}㎡로 검색</a>`;
+      fallback.hidden = false;
+    } else {
+      fallback.hidden = true;
     }
-
-    // 네이버 부동산 단지 페이지의 단지정보 > 평면도. 도착 후 몇 번 눌러야 하지만
-    // 이미지 검색이 다 실패해도 여기엔 대개 있습니다.
-    const land = 'https://m.land.naver.com/search/result/' + encodeURIComponent([region, name].filter(Boolean).join(' '));
-    links.push(`<a href="${land}" target="_blank" rel="noopener">네이버 부동산</a>`);
-
-    // 분양 시 법정 공개 문서라 단위세대 평면도가 반드시 들어 있습니다.
-    const notice = [region, name, '입주자모집공고'].filter(Boolean).join(' ');
-    links.push(`<a href="${googleImg(notice)}" target="_blank" rel="noopener">입주자모집공고</a>`);
-
-    fallback.innerHTML = '안 나오면 → ' + links.join(' · ');
-    fallback.hidden = false;
   }
 
   [aptRegion, aptName, aptPyeong].forEach(el => el.addEventListener('input', updateSearchLinks));
