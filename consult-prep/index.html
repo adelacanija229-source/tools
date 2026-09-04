@@ -13,8 +13,6 @@
     --accent-strong: #b45309;
     --accent-soft: #fef0dc;
     --border: #ecdfd0;
-    --success: #15803d;
-    --blueprint: #1a3a5c;
     --shadow: 0 1px 2px rgba(43,33,25,0.04), 0 8px 24px rgba(43,33,25,0.06);
   }
   @media (prefers-color-scheme: dark) {
@@ -28,7 +26,6 @@
       --accent-strong: #fbbf24;
       --accent-soft: #3a2a18;
       --border: #3c2f26;
-      --success: #4ade80;
       --shadow: 0 1px 2px rgba(0,0,0,0.2), 0 8px 24px rgba(0,0,0,0.35);
     }
   }
@@ -42,7 +39,6 @@
     --accent-strong: #fbbf24;
     --accent-soft: #3a2a18;
     --border: #3c2f26;
-    --success: #4ade80;
     --shadow: 0 1px 2px rgba(0,0,0,0.2), 0 8px 24px rgba(0,0,0,0.35);
   }
 
@@ -67,49 +63,37 @@
   h1 { font-size: 22px; font-weight: 800; margin: 10px 0 4px; text-wrap: balance; }
   header p { margin: 0; color: var(--text-muted); font-size: 14px; line-height: 1.6; }
 
-  .tabs {
-    display: flex; gap: 6px; margin-top: 20px;
-    background: var(--surface-2); padding: 4px; border-radius: 10px;
+  .card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 20px; box-shadow: var(--shadow);
   }
-  .tab-btn {
-    flex: 1; padding: 10px 8px; border: none; background: transparent;
-    color: var(--text-muted); font-size: 13px; font-weight: 600;
-    font-family: inherit; border-radius: 7px; cursor: pointer;
+  .card + .card { margin-top: 16px; }
+
+  .step { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
+  .step-num {
+    width: 22px; height: 22px; border-radius: 50%; background: var(--accent-soft);
+    color: var(--accent-strong); display: inline-flex; align-items: center;
+    justify-content: center; font-size: 12px; font-weight: 700;
   }
-  .tab-btn.active { background: var(--surface); color: var(--accent-strong); box-shadow: var(--shadow); }
+  .step-title { font-size: 14px; font-weight: 700; }
+  .step-hint { font-size: 12px; color: var(--text-muted); margin-left: auto; }
 
-  .panel { display: none; margin-top: 20px; }
-  .panel.active { display: block; }
-
-  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; box-shadow: var(--shadow); }
   .field { margin-bottom: 14px; }
   .field label { display: block; font-size: 13px; font-weight: 600; color: var(--text-muted); margin-bottom: 6px; }
-  .field input[type="text"], .field input[type="number"], .field select, .field textarea {
+  .field input[type="text"], .field select {
     width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px;
     background: var(--bg); color: var(--text); font-family: inherit; font-size: 14px;
   }
-  .field textarea { resize: vertical; min-height: 60px; }
   .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 
   .btn {
     display: inline-flex; align-items: center; justify-content: center; gap: 6px;
     width: 100%; padding: 12px; background: var(--accent); color: #fff; border: none;
-    border-radius: 9px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit;
+    border-radius: 9px; font-size: 14px; font-weight: 700; cursor: pointer;
+    font-family: inherit; text-decoration: none;
   }
   .btn:hover { background: var(--accent-strong); }
-  .btn.secondary { background: var(--surface-2); color: var(--accent-strong); }
-  .btn.secondary:hover { background: var(--border); }
-
-  .link-list { display: flex; flex-direction: column; gap: 8px; margin-top: 16px; }
-  .link-item {
-    display: flex; align-items: center; justify-content: space-between; gap: 10px;
-    padding: 12px 14px; background: var(--surface); border: 1px solid var(--border);
-    border-radius: 10px; text-decoration: none; color: var(--text); box-shadow: var(--shadow);
-  }
-  .link-item:hover { border-color: var(--accent); }
-  .link-item .name { font-size: 14px; font-weight: 600; }
-  .link-item .desc { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
-  .link-item .go { color: var(--accent-strong); font-size: 13px; font-weight: 700; white-space: nowrap; }
+  .btn[aria-disabled="true"] { opacity: 0.45; pointer-events: none; }
 
   .drop {
     border: 2px dashed var(--border); border-radius: 14px; background: var(--surface);
@@ -119,20 +103,35 @@
   .drop input { display: none; }
   .drop-icon { font-size: 26px; margin-bottom: 6px; }
 
-  .style-toggle { display: flex; gap: 8px; margin: 16px 0; }
+  .opt-label { font-size: 12px; font-weight: 700; color: var(--text-muted); margin: 16px 0 8px; letter-spacing: 0.02em; }
+
+  .style-toggle { display: flex; flex-wrap: wrap; gap: 8px; }
   .style-btn {
-    flex: 1; padding: 10px; border: 2px solid var(--border); background: var(--surface);
-    border-radius: 9px; font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer; color: var(--text-muted);
+    flex: 1 1 150px; padding: 10px; border: 2px solid var(--border); background: var(--surface);
+    border-radius: 9px; font-family: inherit; font-size: 13px; font-weight: 600;
+    cursor: pointer; color: var(--text-muted);
   }
   .style-btn.active { border-color: var(--accent); color: var(--accent-strong); background: var(--accent-soft); }
 
-  .slider-row { display: flex; align-items: center; gap: 10px; margin: 14px 0; }
+  .chip-row { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip {
+    padding: 9px 14px; border: 2px solid var(--border); background: var(--surface);
+    border-radius: 8px; font-family: inherit; font-size: 13px; font-weight: 600;
+    color: var(--text-muted); cursor: pointer;
+  }
+  .chip.active { border-color: var(--accent); color: var(--accent-strong); background: var(--accent-soft); }
+
+  .slider-row { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
   .slider-row label { font-size: 13px; color: var(--text-muted); white-space: nowrap; }
   .slider-row input[type=range] { flex: 1; accent-color: var(--accent); }
 
-  #preview-wrap { display: none; margin-top: 16px; }
+  #preview-wrap { display: none; margin-top: 18px; }
   #preview-wrap.show { display: block; }
-  #preview-canvas { width: 100%; height: auto; border-radius: 10px; border: 1px solid var(--border); background: var(--surface); }
+  #preview-canvas {
+    width: 100%; height: auto; border-radius: 10px;
+    border: 1px solid var(--border); background: #fff;
+  }
+  #busy { font-size: 12px; color: var(--accent-strong); margin-top: 8px; }
 
   .info-toggle {
     display: flex; align-items: center; gap: 8px; margin-top: 14px;
@@ -152,79 +151,91 @@
   <header>
     <span class="eyebrow">🏠 LOCAL WEB APP</span>
     <h1>고객 상담 준비 도구</h1>
-    <p>상담 전 평면도를 찾고, 라인·청사진 스타일로 바꾼 뒤 아파트 정보까지 함께 넣어 상담 자료 이미지 한 장으로 저장합니다. 모든 처리는 이 브라우저 안에서만 이뤄집니다.</p>
+    <p>평면도를 찾아 라인·청사진·공간 구분 스타일로 바꾸고, 아파트 정보까지 얹어 상담 자료 한 장으로 저장합니다. 모든 처리는 이 브라우저 안에서만 이뤄집니다.</p>
   </header>
 
-  <div class="tabs">
-    <button type="button" class="tab-btn active" data-tab="links">🔍 평면도 찾기</button>
-    <button type="button" class="tab-btn" data-tab="style">📐 도면 스타일 변환</button>
-  </div>
-
-  <!-- 탭 1: 평면도 찾기 -->
-  <div class="panel active" id="panel-links">
-    <div class="card">
+  <!-- 1단계: 평면도 찾기 -->
+  <div class="card">
+    <div class="step">
+      <span class="step-num">1</span>
+      <span class="step-title">평면도 찾기</span>
+      <span class="step-hint">이미 있으면 건너뛰세요</span>
+    </div>
+    <div class="row2">
       <div class="field">
         <label for="apt-name">아파트 단지명</label>
-        <input type="text" id="apt-name" placeholder="예: 래미안원베일리">
+        <input type="text" id="apt-name" placeholder="예: 도곡 삼성 래미안">
       </div>
       <div class="field">
-        <label for="apt-pyeong">평형 (선택, 넣으면 검색이 훨씬 정확해집니다)</label>
+        <label for="apt-pyeong">평형</label>
         <input type="text" id="apt-pyeong" placeholder="예: 34평">
       </div>
-      <button type="button" class="btn" id="make-links-btn">🔗 검색 링크 만들기</button>
-      <div class="link-list" id="link-list"></div>
     </div>
+    <a class="btn" id="search-link" href="#" target="_blank" rel="noopener" aria-disabled="true">🔍 구글 이미지에서 평면도 검색</a>
   </div>
 
-  <!-- 탭 2: 도면 스타일 변환 -->
-  <div class="panel" id="panel-style">
-    <div class="card">
-      <div class="drop" id="drop">
-        <div class="drop-icon">📐</div>
-        <strong>평면도 이미지를 드래그하거나 클릭해서 선택하세요</strong>
-        <div style="color:var(--text-muted); font-size:13px; margin-top:4px;">캡처한 스크린샷도 괜찮습니다</div>
-        <input type="file" id="file-input" accept="image/*">
-      </div>
+  <!-- 2단계: 도면 변환 -->
+  <div class="card">
+    <div class="step">
+      <span class="step-num">2</span>
+      <span class="step-title">도면 변환</span>
+    </div>
 
-      <div class="style-toggle">
-        <button type="button" class="style-btn active" data-style="line">⬛ 라인 도면 (흰 배경)</button>
-        <button type="button" class="style-btn" data-style="blueprint">🔷 청사진 스타일</button>
-      </div>
-      <div class="slider-row">
-        <label for="threshold">선명도</label>
-        <input type="range" id="threshold" min="80" max="220" value="150">
-      </div>
+    <div class="drop" id="drop">
+      <div class="drop-icon">📐</div>
+      <strong>평면도 이미지를 드래그하거나 클릭해서 선택하세요</strong>
+      <div style="color:var(--text-muted); font-size:13px; margin-top:4px;">캡처한 스크린샷도 괜찮습니다</div>
+      <input type="file" id="file-input" accept="image/*">
+    </div>
 
-      <div id="preview-wrap">
-        <canvas id="preview-canvas"></canvas>
+    <div class="opt-label">스타일</div>
+    <div class="style-toggle">
+      <button type="button" class="style-btn active" data-style="line">⬛ 라인 도면</button>
+      <button type="button" class="style-btn" data-style="blueprint">🔷 청사진</button>
+      <button type="button" class="style-btn" data-style="zone">🎨 공간 구분</button>
+    </div>
 
-        <label class="info-toggle">
-          <input type="checkbox" id="include-info-toggle">
-          <span>📋 아파트 정보도 함께 넣어서 저장 (상담 자료용 최종본)</span>
-        </label>
-        <div id="info-fields" hidden>
-          <div class="row2">
-            <div class="field"><label for="s-name">아파트명</label><input type="text" id="s-name" placeholder="예: 래미안원베일리"></div>
-            <div class="field"><label for="s-pyeong">평형</label><input type="text" id="s-pyeong" placeholder="예: 34평"></div>
-          </div>
-          <div class="row2">
-            <div class="field"><label for="s-year">준공년도</label><input type="text" id="s-year" placeholder="예: 2023년"></div>
-            <div class="field"><label for="s-area">전용면적</label><input type="text" id="s-area" placeholder="예: 84.98㎡"></div>
-          </div>
-          <div class="field">
-            <label for="s-heating">난방 방식</label>
-            <select id="s-heating">
-              <option value="">-</option>
-              <option value="개별난방 (도시가스)">개별난방 (도시가스)</option>
-              <option value="지역난방">지역난방</option>
-              <option value="중앙난방">중앙난방</option>
-              <option value="기타">기타</option>
-            </select>
-          </div>
+    <div class="opt-label">대칭</div>
+    <div class="chip-row">
+      <button type="button" class="chip" id="flip-h">↔ 좌우 반전</button>
+      <button type="button" class="chip" id="flip-v">↕ 상하 반전</button>
+    </div>
+
+    <div class="opt-label">선명도</div>
+    <div class="slider-row">
+      <input type="range" id="threshold" min="80" max="220" value="150">
+    </div>
+
+    <div id="preview-wrap">
+      <canvas id="preview-canvas"></canvas>
+      <div id="busy" hidden>공간을 나누는 중…</div>
+
+      <label class="info-toggle">
+        <input type="checkbox" id="include-info-toggle">
+        <span>📋 아파트 정보를 도면 우측 상단에 넣어서 저장</span>
+      </label>
+      <div id="info-fields" hidden>
+        <div class="row2">
+          <div class="field"><label for="s-name">아파트명</label><input type="text" id="s-name" placeholder="예: 도곡 삼성"></div>
+          <div class="field"><label for="s-pyeong">평형</label><input type="text" id="s-pyeong" placeholder="예: 34"></div>
         </div>
-
-        <button type="button" class="btn" id="download-style-btn" style="margin-top:12px;">⬇️ 이미지 저장</button>
+        <div class="row2">
+          <div class="field"><label for="s-year">준공년도</label><input type="text" id="s-year" placeholder="예: 2000년"></div>
+          <div class="field"><label for="s-area">전용면적</label><input type="text" id="s-area" placeholder="예: 84.98"></div>
+        </div>
+        <div class="field">
+          <label for="s-heating">난방 방식</label>
+          <select id="s-heating">
+            <option value="">-</option>
+            <option value="개별난방 (도시가스)">개별난방 (도시가스)</option>
+            <option value="지역난방">지역난방</option>
+            <option value="중앙난방">중앙난방</option>
+            <option value="기타">기타</option>
+          </select>
+        </div>
       </div>
+
+      <button type="button" class="btn" id="download-style-btn" style="margin-top:12px;">⬇️ 이미지 저장</button>
     </div>
   </div>
 
@@ -236,6 +247,9 @@
 
 <script>
   // ---------- 공통 ----------
+  const $ = (id) => document.getElementById(id);
+  const val = (id) => ($(id) ? $(id).value.trim() : '');
+
   let downloadsApi = null;
   (async () => {
     try {
@@ -269,77 +283,46 @@
     a.remove();
   }
 
-  // ---------- 탭 전환 ----------
-  const tabBtns = [...document.querySelectorAll('.tab-btn')];
-  tabBtns.forEach(btn => {
-    btn.addEventListener('click', () => {
-      tabBtns.forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-      document.getElementById('panel-' + btn.dataset.tab).classList.add('active');
-    });
-  });
+  // ---------- 1단계: 평면도 검색 ----------
+  // 링크는 구글 이미지 검색 하나만 둡니다. site: 검색은 결과 페이지만 열리고
+  // 정작 사이트로는 못 가서 뺐습니다.
+  const aptName = $('apt-name');
+  const aptPyeong = $('apt-pyeong');
+  const searchLink = $('search-link');
 
-  // ---------- 탭 1: 검색 링크 ----------
-  const aptNameInput = document.getElementById('apt-name');
-  const aptPyeongInput = document.getElementById('apt-pyeong');
-  const linkList = document.getElementById('link-list');
-
-  function buildLinks(name, pyeong) {
-    // 평형까지 넣어야 특정 타입 평면도가 정확히 검색됩니다 (단지명만으로는 여러 평형이 섞여 나옵니다).
-    const nameWithPyeong = pyeong ? `${name} ${pyeong}` : name;
-    const q = encodeURIComponent(nameWithPyeong);
-    const qPlan = encodeURIComponent(nameWithPyeong + ' 평면도');
-    return [
-      { label: '네이버 지도에서 위치 보기', desc: '단지 위치·주변 정보 확인', url: `https://map.naver.com/p/search/${encodeURIComponent(name)}` },
-      { label: '구글 이미지에서 평면도 검색', desc: '가장 빠르게 평면도 이미지 모아보기', url: `https://www.google.com/search?q=${qPlan}&tbm=isch` },
-      { label: '호갱노노에서 검색', desc: '실거래가·단지 상세', url: `https://www.google.com/search?q=${q}+site:hogangnono.com` },
-      { label: '아실(아파트실거래가)에서 검색', desc: '실거래가·평면도', url: `https://www.google.com/search?q=${qPlan}+site:asil.kr` },
-      { label: 'KB부동산에서 검색', desc: '시세·단지 정보', url: `https://www.google.com/search?q=${q}+site:kbland.kr` },
-    ];
+  function updateSearchLink() {
+    const name = aptName.value.trim();
+    if (!name) {
+      searchLink.href = '#';
+      searchLink.setAttribute('aria-disabled', 'true');
+      return;
+    }
+    const pyeong = aptPyeong.value.trim();
+    const q = [name, pyeong, '평면도'].filter(Boolean).join(' ');
+    searchLink.href = 'https://www.google.com/search?tbm=isch&q=' + encodeURIComponent(q);
+    searchLink.removeAttribute('aria-disabled');
   }
+  aptName.addEventListener('input', updateSearchLink);
+  aptPyeong.addEventListener('input', updateSearchLink);
 
-  function renderLinks(name, pyeong) {
-    linkList.innerHTML = '';
-    if (!name.trim()) return;
-    buildLinks(name.trim(), pyeong.trim()).forEach(item => {
-      const a = document.createElement('a');
-      a.className = 'link-item';
-      a.href = item.url;
-      a.target = '_blank';
-      a.rel = 'noopener';
-      a.innerHTML = `<div><div class="name">${item.label}</div><div class="desc">${item.desc}</div></div><span class="go">열기 ↗</span>`;
-      linkList.appendChild(a);
-    });
-  }
-
-  document.getElementById('make-links-btn').addEventListener('click', () => renderLinks(aptNameInput.value, aptPyeongInput.value));
-  aptNameInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') renderLinks(aptNameInput.value, aptPyeongInput.value); });
-  aptPyeongInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') renderLinks(aptNameInput.value, aptPyeongInput.value); });
-
-  // ---------- 탭 2: 도면 스타일 변환 ----------
-  const drop = document.getElementById('drop');
-  const fileInput = document.getElementById('file-input');
-  const previewWrap = document.getElementById('preview-wrap');
-  const previewCanvas = document.getElementById('preview-canvas');
-  const thresholdInput = document.getElementById('threshold');
+  // ---------- 2단계: 도면 변환 ----------
+  const drop = $('drop');
+  const fileInput = $('file-input');
+  const previewWrap = $('preview-wrap');
+  const previewCanvas = $('preview-canvas');
+  const thresholdInput = $('threshold');
+  const busy = $('busy');
   const styleBtns = [...document.querySelectorAll('.style-btn')];
-  const downloadStyleBtn = document.getElementById('download-style-btn');
-  const includeInfoToggle = document.getElementById('include-info-toggle');
-  const infoFieldsWrap = document.getElementById('info-fields');
+  const flipHBtn = $('flip-h');
+  const flipVBtn = $('flip-v');
+  const downloadStyleBtn = $('download-style-btn');
+  const includeInfoToggle = $('include-info-toggle');
+  const infoFieldsWrap = $('info-fields');
 
   let currentImg = null;
   let currentStyle = 'line';
-
-  includeInfoToggle.addEventListener('change', () => {
-    infoFieldsWrap.hidden = !includeInfoToggle.checked;
-    if (includeInfoToggle.checked) {
-      const sName = document.getElementById('s-name');
-      const sPyeong = document.getElementById('s-pyeong');
-      if (!sName.value && aptNameInput.value) sName.value = aptNameInput.value;
-      if (!sPyeong.value && aptPyeongInput.value) sPyeong.value = aptPyeongInput.value;
-    }
-  });
+  let flipH = false;
+  let flipV = false;
 
   drop.addEventListener('click', () => fileInput.click());
   drop.addEventListener('dragover', (e) => { e.preventDefault(); drop.style.borderColor = 'var(--accent)'; });
@@ -357,6 +340,9 @@
     img.onload = () => {
       currentImg = img;
       previewWrap.classList.add('show');
+      // 아파트명을 이미 적었으면 정보 칸에 그대로 옮겨 둡니다.
+      if (!val('s-name') && aptName.value.trim()) $('s-name').value = aptName.value.trim();
+      if (!val('s-pyeong') && aptPyeong.value.trim()) $('s-pyeong').value = aptPyeong.value.trim();
       renderStyle();
     };
     img.src = URL.createObjectURL(file);
@@ -370,90 +356,238 @@
       renderStyle();
     });
   });
-  thresholdInput.addEventListener('input', renderStyle);
+
+  flipHBtn.addEventListener('click', () => {
+    flipH = !flipH;
+    flipHBtn.classList.toggle('active', flipH);
+    renderStyle();
+  });
+  flipVBtn.addEventListener('click', () => {
+    flipV = !flipV;
+    flipVBtn.classList.toggle('active', flipV);
+    renderStyle();
+  });
+
+  // 공간 구분은 픽셀을 훑어야 해서, 슬라이더를 끄는 동안엔 잠깐 기다렸다 계산합니다.
+  let sliderTimer = null;
+  thresholdInput.addEventListener('input', () => {
+    if (currentStyle !== 'zone') { renderStyle(); return; }
+    clearTimeout(sliderTimer);
+    sliderTimer = setTimeout(renderStyle, 160);
+  });
+
+  includeInfoToggle.addEventListener('change', () => {
+    infoFieldsWrap.hidden = !includeInfoToggle.checked;
+  });
+
+  // 숫자만 적어도 단위가 붙습니다.
+  function attachUnit(id, unit) {
+    const el = $(id);
+    el.addEventListener('blur', () => {
+      const v = el.value.trim();
+      if (v && /^[0-9]+(\.[0-9]+)?$/.test(v)) el.value = v + unit;
+    });
+  }
+  attachUnit('s-pyeong', '평');
+  attachUnit('s-area', '㎡');
 
   function renderStyle() {
     if (!currentImg) return;
-    previewCanvas.width = currentImg.width;
-    previewCanvas.height = currentImg.height;
-    const ctx = previewCanvas.getContext('2d');
+    if (currentStyle !== 'zone') {
+      busy.hidden = true;
+      drawStyle();
+      return;
+    }
+    // 공간 구분은 계산이 길어질 수 있어, 안내를 먼저 그려 놓고 시작합니다.
+    busy.hidden = false;
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      drawStyle();
+      busy.hidden = true;
+    }));
+  }
+
+  function drawStyle() {
+    const W = currentImg.width, H = currentImg.height;
+    previewCanvas.width = W;
+    previewCanvas.height = H;
+    const ctx = previewCanvas.getContext('2d', { willReadFrequently: true });
+
+    ctx.save();
+    ctx.setTransform(flipH ? -1 : 1, 0, 0, flipV ? -1 : 1, flipH ? W : 0, flipV ? H : 0);
     ctx.drawImage(currentImg, 0, 0);
-    const imageData = ctx.getImageData(0, 0, previewCanvas.width, previewCanvas.height);
+    ctx.restore();
+
+    const imageData = ctx.getImageData(0, 0, W, H);
     const d = imageData.data;
     const threshold = Number(thresholdInput.value);
-    const blueprintBg = [26, 58, 92];
-    for (let i = 0; i < d.length; i += 4) {
-      const gray = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
-      const isLine = gray < threshold;
-      if (currentStyle === 'line') {
-        const v = isLine ? 0 : 255;
-        d[i] = v; d[i + 1] = v; d[i + 2] = v;
-      } else {
-        if (isLine) { d[i] = 255; d[i + 1] = 255; d[i + 2] = 255; }
-        else { d[i] = blueprintBg[0]; d[i + 1] = blueprintBg[1]; d[i + 2] = blueprintBg[2]; }
+
+    if (currentStyle === 'zone') {
+      applyZoneColors(d, W, H, threshold);
+    } else {
+      const blueprintBg = [26, 58, 92];
+      for (let i = 0; i < d.length; i += 4) {
+        const gray = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+        const isLine = gray < threshold;
+        if (currentStyle === 'line') {
+          const v = isLine ? 0 : 255;
+          d[i] = v; d[i + 1] = v; d[i + 2] = v;
+        } else {
+          if (isLine) { d[i] = 255; d[i + 1] = 255; d[i + 2] = 255; }
+          else { d[i] = blueprintBg[0]; d[i + 1] = blueprintBg[1]; d[i + 2] = blueprintBg[2]; }
+        }
+        d[i + 3] = 255;
       }
-      d[i + 3] = 255;
     }
     ctx.putImageData(imageData, 0, 0);
   }
 
+  // 벽(어두운 선)으로 둘러싸인 방을 하나씩 찾아 서로 다른 색으로 칠합니다.
+  // 따뜻한 뉴트럴 그레이. 붙어 있는 방이 헷갈리지 않게 밝기를 지그재그로 놓았습니다.
+  const ZONE_COLORS = [
+    [232, 228, 223], [176, 170, 163], [216, 211, 205], [195, 189, 182],
+    [225, 221, 216], [185, 179, 172], [206, 201, 195], [166, 160, 153],
+  ];
+
+  function applyZoneColors(d, w, h, threshold) {
+    const n = w * h;
+    const wall = new Uint8Array(n);
+    for (let p = 0; p < n; p++) {
+      const i = p * 4;
+      wall[p] = (0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2]) < threshold ? 1 : 0;
+    }
+
+    const label = new Int32Array(n).fill(-1);
+    const stack = new Int32Array(n);
+    const regions = [];
+
+    for (let start = 0; start < n; start++) {
+      if (wall[start] || label[start] !== -1) continue;
+      const id = regions.length;
+      let sp = 0;
+      stack[sp++] = start;
+      label[start] = id;
+      let area = 0;
+      let touchesBorder = false;
+
+      while (sp > 0) {
+        const cur = stack[--sp];
+        area++;
+        const x = cur % w;
+        const y = (cur / w) | 0;
+        if (x === 0 || y === 0 || x === w - 1 || y === h - 1) touchesBorder = true;
+        if (x > 0)     { const nb = cur - 1; if (!wall[nb] && label[nb] === -1) { label[nb] = id; stack[sp++] = nb; } }
+        if (x < w - 1) { const nb = cur + 1; if (!wall[nb] && label[nb] === -1) { label[nb] = id; stack[sp++] = nb; } }
+        if (y > 0)     { const nb = cur - w; if (!wall[nb] && label[nb] === -1) { label[nb] = id; stack[sp++] = nb; } }
+        if (y < h - 1) { const nb = cur + w; if (!wall[nb] && label[nb] === -1) { label[nb] = id; stack[sp++] = nb; } }
+      }
+      regions.push({ area, touchesBorder });
+    }
+
+    // 도면 바깥(테두리에 닿는 영역)과 글자 사이 자잘한 틈은 칠하지 않습니다.
+    const minArea = Math.max(300, Math.floor(n * 0.0006));
+    const colorOf = new Int32Array(regions.length).fill(-1);
+    let ci = 0;
+    regions
+      .map((r, i) => ({ r, i }))
+      .filter(({ r }) => !r.touchesBorder && r.area >= minArea)
+      .sort((a, b) => b.r.area - a.r.area)
+      .forEach(({ i }) => { colorOf[i] = ci % ZONE_COLORS.length; ci++; });
+
+    for (let p = 0; p < n; p++) {
+      const i = p * 4;
+      if (wall[p]) {
+        d[i] = 38; d[i + 1] = 34; d[i + 2] = 31;
+      } else {
+        const c = colorOf[label[p]];
+        if (c >= 0) {
+          const col = ZONE_COLORS[c];
+          d[i] = col[0]; d[i + 1] = col[1]; d[i + 2] = col[2];
+        } else {
+          d[i] = 255; d[i + 1] = 255; d[i + 2] = 255;
+        }
+      }
+      d[i + 3] = 255;
+    }
+  }
+
+  // ---------- 저장 ----------
+  function roundRect(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  }
+
+  function wrapByWidth(ctx, text, maxW) {
+    const out = [];
+    let line = '';
+    for (const ch of text) {
+      const test = line + ch;
+      if (ctx.measureText(test).width > maxW && line) { out.push(line); line = ch; }
+      else line = test;
+    }
+    if (line) out.push(line);
+    return out;
+  }
+
   async function buildStyleWithInfoCanvas() {
     await document.fonts.ready;
-    const W = previewCanvas.width;
-    const pad = Math.max(24, Math.round(W * 0.035));
-    const nameSize = Math.max(22, Math.round(W * 0.032));
-    const labelSize = Math.max(13, Math.round(W * 0.016));
-    const valueSize = Math.max(15, Math.round(W * 0.019));
-    const rowH = Math.round(valueSize * 2.1);
-
-    const fields = [
-      ['평형', document.getElementById('s-pyeong').value],
-      ['준공년도', document.getElementById('s-year').value],
-      ['전용면적', document.getElementById('s-area').value],
-      ['난방 방식', document.getElementById('s-heating').value],
-    ].filter(([, v]) => v);
-    const rows = Math.max(1, Math.ceil(fields.length / 2));
-    const infoH = pad + nameSize + 16 + rows * rowH + pad;
-
+    const W = previewCanvas.width, H = previewCanvas.height;
     const out = document.createElement('canvas');
     out.width = W;
-    out.height = previewCanvas.height + infoH;
+    out.height = H;
     const ctx = out.getContext('2d');
-
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, W, out.height);
     ctx.drawImage(previewCanvas, 0, 0);
 
-    const barY = previewCanvas.height;
-    ctx.fillStyle = '#fef3c7';
-    ctx.fillRect(0, barY, W, infoH);
-    ctx.strokeStyle = '#f0c674';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(0, barY);
-    ctx.lineTo(W, barY);
+    const name = val('s-name');
+    const facts = [val('s-pyeong'), val('s-area'), val('s-year'), val('s-heating')].filter(Boolean);
+    if (!name && !facts.length) return out;
+
+    const pad = Math.max(12, Math.round(W * 0.018));
+    const nameSize = Math.max(16, Math.round(W * 0.025));
+    const factSize = Math.max(12, Math.round(W * 0.016));
+    const maxTextW = Math.min(W * 0.44, W - pad * 4);
+
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'alphabetic';
+
+    const lines = [];
+    if (name) lines.push({ t: name, size: nameSize, weight: 700, color: '#2b2320' });
+    if (facts.length) {
+      ctx.font = `500 ${factSize}px "Noto Sans KR"`;
+      wrapByWidth(ctx, facts.join(' · '), maxTextW).forEach(t => {
+        lines.push({ t, size: factSize, weight: 500, color: '#6b5d53' });
+      });
+    }
+
+    let textW = 0;
+    lines.forEach(l => {
+      ctx.font = `${l.weight} ${l.size}px "Noto Sans KR"`;
+      textW = Math.max(textW, ctx.measureText(l.t).width);
+    });
+
+    const gap = Math.round(factSize * 0.55);
+    const boxW = textW + pad * 2;
+    const boxH = lines.reduce((acc, l) => acc + l.size + gap, 0) - gap + pad * 2;
+    const boxX = W - boxW - pad;
+    const boxY = pad;
+
+    ctx.fillStyle = 'rgba(255,255,255,0.92)';
+    ctx.strokeStyle = 'rgba(180,83,9,0.35)';
+    ctx.lineWidth = Math.max(1, W * 0.0012);
+    roundRect(ctx, boxX, boxY, boxW, boxH, Math.round(pad * 0.6));
+    ctx.fill();
     ctx.stroke();
 
-    ctx.textBaseline = 'alphabetic';
-    let y = barY + pad + nameSize * 0.75;
-    const name = document.getElementById('s-name').value || '아파트명 미입력';
-    ctx.fillStyle = '#2b2320';
-    ctx.font = `700 ${nameSize}px "Noto Sans KR"`;
-    ctx.fillText(name, pad, y);
-
-    y += nameSize * 0.5 + 20;
-    const colW = (W - pad * 2) / 2;
-    fields.forEach(([label, value], i) => {
-      const col = i % 2;
-      const row = Math.floor(i / 2);
-      const x = pad + col * colW;
-      const ly = y + row * rowH;
-      ctx.fillStyle = '#8a7a6f';
-      ctx.font = `600 ${labelSize}px "Noto Sans KR"`;
-      ctx.fillText(label, x, ly);
-      ctx.fillStyle = '#2b2320';
-      ctx.font = `700 ${valueSize}px "Noto Sans KR"`;
-      ctx.fillText(value, x, ly + valueSize + 4);
+    let y = boxY + pad + lines[0].size * 0.82;
+    lines.forEach(l => {
+      ctx.font = `${l.weight} ${l.size}px "Noto Sans KR"`;
+      ctx.fillStyle = l.color;
+      ctx.fillText(l.t, boxX + boxW - pad, y);
+      y += l.size + gap;
     });
 
     return out;
@@ -466,5 +600,4 @@
       if (blob) downloadBlob(blob, `floorplan_${currentStyle}.png`, downloadStyleBtn);
     }, 'image/png');
   });
-
 </script>
