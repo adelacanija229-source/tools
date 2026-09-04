@@ -337,6 +337,10 @@
   modeExtractBtn.addEventListener('click', () => setMode('extract'));
   modeConvertBtn.addEventListener('click', () => setMode('convert'));
 
+  // ?mode=convert 로 접속하면 "PDF 전체를 이미지로 변환" 모드로 바로 열립니다.
+  const urlMode = new URLSearchParams(location.search).get('mode');
+  if (urlMode === 'convert') setMode('convert');
+
   let results = []; // { blob, filename }
 
   let downloadsApi = null;
