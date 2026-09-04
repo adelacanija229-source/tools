@@ -1,0 +1,651 @@
+<title>PDF 이미지 추출기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+  :root {
+    --bg: #fffaf5;
+    --surface: #ffffff;
+    --surface-2: #fff4e8;
+    --text: #2b211d;
+    --text-muted: #8a7a6f;
+    --accent: #d97706;
+    --accent-strong: #b45309;
+    --accent-soft: #fef0dc;
+    --border: #ecdfd0;
+    --success: #15803d;
+    --success-soft: #eaf7ee;
+    --shadow: 0 1px 2px rgba(43,33,25,0.04), 0 8px 24px rgba(43,33,25,0.06);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #1b1512;
+      --surface: #241d18;
+      --surface-2: #2e2119;
+      --text: #f3e9de;
+      --text-muted: #b3a294;
+      --accent: #f59e0b;
+      --accent-strong: #fbbf24;
+      --accent-soft: #3a2a18;
+      --border: #3c2f26;
+      --success: #4ade80;
+      --success-soft: #17291d;
+      --shadow: 0 1px 2px rgba(0,0,0,0.2), 0 8px 24px rgba(0,0,0,0.35);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #1b1512;
+    --surface: #241d18;
+    --surface-2: #2e2119;
+    --text: #f3e9de;
+    --text-muted: #b3a294;
+    --accent: #f59e0b;
+    --accent-strong: #fbbf24;
+    --accent-soft: #3a2a18;
+    --border: #3c2f26;
+    --success: #4ade80;
+    --success-soft: #17291d;
+    --shadow: 0 1px 2px rgba(0,0,0,0.2), 0 8px 24px rgba(0,0,0,0.35);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Noto Sans KR", "Malgun Gothic", sans-serif;
+    padding: 28px 16px 48px;
+    display: flex;
+    justify-content: center;
+  }
+  main { width: 100%; max-width: 680px; }
+
+  header { margin-bottom: 20px; }
+  .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    color: var(--accent-strong);
+    background: var(--accent-soft);
+    padding: 4px 10px;
+    border-radius: 999px;
+  }
+  h1 {
+    font-size: 22px;
+    font-weight: 800;
+    margin: 10px 0 4px;
+    text-wrap: balance;
+  }
+  header p {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  .drop {
+    margin-top: 20px;
+    border: 2px dashed var(--border);
+    border-radius: 14px;
+    background: var(--surface);
+    padding: 36px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.15s ease, background 0.15s ease;
+  }
+  .drop:hover, .drop.drag {
+    border-color: var(--accent);
+    background: var(--surface-2);
+  }
+  .drop-icon { font-size: 28px; margin-bottom: 8px; }
+  .drop strong { display: block; font-size: 15px; margin-bottom: 4px; }
+  .drop span { color: var(--text-muted); font-size: 13px; }
+  .drop input { display: none; }
+  .drop.busy { cursor: default; }
+
+  .filebar {
+    display: none;
+    align-items: center;
+    gap: 10px;
+    margin-top: 14px;
+    padding: 10px 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    font-size: 13px;
+  }
+  .filebar.show { display: flex; }
+  .filebar .name { font-weight: 600; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .filebar .status { color: var(--text-muted); font-family: "JetBrains Mono", monospace; font-size: 12px; }
+  .dl-all-btn {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    width: 100%;
+    margin-top: 10px;
+    padding: 10px;
+    background: var(--text);
+    color: var(--bg);
+    border: none;
+    border-radius: 9px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .dl-all-btn.show { display: inline-flex; }
+  .dl-all-btn:disabled { opacity: 0.6; cursor: default; }
+  .progress-track {
+    margin-top: 10px;
+    height: 6px;
+    border-radius: 999px;
+    background: var(--surface-2);
+    overflow: hidden;
+    display: none;
+  }
+  .progress-track.show { display: block; }
+  .progress-fill {
+    height: 100%;
+    width: 0%;
+    background: var(--accent);
+    transition: width 0.2s ease;
+  }
+
+  .empty {
+    display: none;
+    margin-top: 18px;
+    padding: 20px;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 13.5px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+  }
+  .empty.show { display: block; }
+
+  .grid {
+    margin: 18px 0 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 10px;
+  }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: var(--shadow);
+    display: flex;
+    flex-direction: column;
+  }
+  .card .thumb {
+    aspect-ratio: 1 / 1;
+    background: var(--surface-2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+  .card .thumb img { width: 100%; height: 100%; object-fit: contain; }
+  .card .info { padding: 8px 10px 10px; }
+  .card .meta {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+  }
+  .card .meta .saved { color: var(--success); }
+  .card.page-card { border-color: var(--accent); }
+  .card .badge {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--accent-strong);
+    background: var(--accent-soft);
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 999px;
+    margin-bottom: 4px;
+  }
+  .dl-btn {
+    width: 100%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    text-decoration: none;
+    padding: 7px 10px;
+    border-radius: 7px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .dl-btn:hover { background: var(--accent-strong); }
+  .dl-btn:disabled { opacity: 0.6; cursor: default; }
+
+  .mode-toggle {
+    display: flex;
+    gap: 6px;
+    margin-top: 16px;
+    background: var(--surface-2);
+    padding: 4px;
+    border-radius: 10px;
+  }
+  .mode-btn {
+    flex: 1;
+    padding: 9px 10px;
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 13px;
+    font-weight: 600;
+    font-family: inherit;
+    border-radius: 7px;
+    cursor: pointer;
+  }
+  .mode-btn.active {
+    background: var(--surface);
+    color: var(--accent-strong);
+    box-shadow: var(--shadow);
+  }
+
+  footer {
+    margin-top: 22px;
+    display: flex;
+    gap: 16px;
+    font-size: 12px;
+    color: var(--text-muted);
+    flex-wrap: wrap;
+  }
+  footer span { display: inline-flex; align-items: center; gap: 5px; }
+
+  [hidden] { display: none !important; }
+</style>
+
+<main>
+  <header>
+    <span class="eyebrow">⚡ LOCAL WEB APP</span>
+    <h1>PDF 이미지 추출기</h1>
+    <p>PDF 안의 사진·그림만 뽑거나, 페이지 전체를 이미지로 통째로 변환할 수 있습니다. 파일은 서버로 전송되지 않습니다.</p>
+  </header>
+
+  <div class="mode-toggle" id="mode-toggle">
+    <button type="button" class="mode-btn active" id="mode-extract" data-mode="extract">🖼️ 사진만 추출</button>
+    <button type="button" class="mode-btn" id="mode-convert" data-mode="convert">📄 PDF 전체를 이미지로 변환</button>
+  </div>
+
+  <div class="drop" id="drop">
+    <div class="drop-icon">📑</div>
+    <strong>PDF 파일을 드래그하거나 클릭해서 선택하세요</strong>
+    <span id="drop-hint">보고서, 논문, 스캔본 등 어떤 PDF든 가능</span>
+    <input type="file" id="file-input" accept="application/pdf">
+  </div>
+
+  <div class="filebar" id="filebar">
+    <span class="name" id="filebar-name"></span>
+    <span class="status" id="filebar-status"></span>
+  </div>
+  <div class="progress-track" id="progress-track"><div class="progress-fill" id="progress-fill"></div></div>
+  <button type="button" class="dl-all-btn" id="dl-all-btn">📦 전체 다운로드</button>
+
+  <div class="empty" id="empty">이 PDF에서는 개별로 추출할 이미지를 찾지 못했습니다. 대신 위의 "페이지 전체" 카드로 각 페이지를 통째로 받으실 수 있어요.</div>
+
+  <div class="grid" id="grid"></div>
+
+  <footer>
+    <span>🔒 서버 업로드 0%</span>
+    <span>🖼️ 사진·그림만 자동으로 골라냄</span>
+    <span>📱 모바일 브라우저에서도 동작</span>
+  </footer>
+</main>
+
+<script>
+  pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+
+  const drop = document.getElementById('drop');
+  const input = document.getElementById('file-input');
+  const filebar = document.getElementById('filebar');
+  const filebarName = document.getElementById('filebar-name');
+  const filebarStatus = document.getElementById('filebar-status');
+  const progressTrack = document.getElementById('progress-track');
+  const progressFill = document.getElementById('progress-fill');
+  const grid = document.getElementById('grid');
+  const empty = document.getElementById('empty');
+  const dlAllBtn = document.getElementById('dl-all-btn');
+  const modeExtractBtn = document.getElementById('mode-extract');
+  const modeConvertBtn = document.getElementById('mode-convert');
+  const dropHint = document.getElementById('drop-hint');
+
+  let mode = 'extract'; // 'extract' | 'convert'
+  const modeHints = {
+    extract: '보고서, 논문, 스캔본 등 어떤 PDF든 가능',
+    convert: '모든 페이지를 이미지 파일로 한 번에 변환합니다'
+  };
+  function setMode(next) {
+    mode = next;
+    modeExtractBtn.classList.toggle('active', mode === 'extract');
+    modeConvertBtn.classList.toggle('active', mode === 'convert');
+    dropHint.textContent = modeHints[mode];
+  }
+  modeExtractBtn.addEventListener('click', () => setMode('extract'));
+  modeConvertBtn.addEventListener('click', () => setMode('convert'));
+
+  let results = []; // { blob, filename }
+
+  let downloadsApi = null;
+  (async () => {
+    try {
+      if (window.claude && typeof window.claude.use === 'function') {
+        downloadsApi = await window.claude.use('downloads');
+      }
+    } catch (e) { downloadsApi = null; }
+  })();
+
+  drop.addEventListener('click', () => { if (!drop.classList.contains('busy')) input.click(); });
+  drop.addEventListener('dragover', (e) => { e.preventDefault(); if (!drop.classList.contains('busy')) drop.classList.add('drag'); });
+  drop.addEventListener('dragleave', () => drop.classList.remove('drag'));
+  drop.addEventListener('drop', (e) => {
+    e.preventDefault();
+    drop.classList.remove('drag');
+    if (drop.classList.contains('busy')) return;
+    const f = [...e.dataTransfer.files].find(f => f.type === 'application/pdf');
+    if (f) handleFile(f);
+  });
+  input.addEventListener('change', (e) => {
+    if (e.target.files[0]) handleFile(e.target.files[0]);
+  });
+  dlAllBtn.addEventListener('click', downloadAll);
+
+  function fmtSize(bytes) {
+    return bytes > 1024 * 1024
+      ? (bytes / 1024 / 1024).toFixed(2) + 'MB'
+      : Math.round(bytes / 1024) + 'KB';
+  }
+
+  async function handleFile(file) {
+    grid.innerHTML = '';
+    results = [];
+    dlAllBtn.classList.remove('show');
+    empty.classList.remove('show');
+    drop.classList.add('busy');
+    filebar.classList.add('show');
+    filebarName.textContent = file.name;
+    filebarStatus.textContent = '불러오는 중…';
+    progressTrack.classList.add('show');
+    progressFill.style.width = '0%';
+
+    let found = 0;
+    try {
+      const buf = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+      const seen = new Set();
+
+      for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+        filebarStatus.textContent = `${pdf.numPages}페이지 중 ${pageNum}번째 처리 중…`;
+        progressFill.style.width = Math.round((pageNum - 1) / pdf.numPages * 100) + '%';
+
+        const page = await pdf.getPage(pageNum);
+
+        // 페이지 전체 렌더 — 도면처럼 이미지가 여러 조각으로 나뉘어 저장된 PDF에서도
+        // 항상 잘리지 않은 완전한 페이지 한 장을 보장하는 안전한 대안입니다.
+        const pageCard = await renderPageToCard(page, pageNum);
+        if (pageCard) grid.appendChild(pageCard);
+
+        // "PDF 전체를 이미지로 변환" 모드에서는 페이지 렌더만 하고,
+        // 내장 이미지 조각을 따로 찾는 작업은 건너뛰어 더 빠르고 결과도 깔끔합니다.
+        if (mode === 'convert') continue;
+
+        const opList = await page.getOperatorList();
+
+        for (let i = 0; i < opList.fnArray.length; i++) {
+          const fn = opList.fnArray[i];
+          const args = opList.argsArray[i];
+
+          if (fn === pdfjsLib.OPS.paintImageXObject || fn === pdfjsLib.OPS.paintImageXObjectRepeat) {
+            const objId = args[0];
+            if (seen.has(objId)) continue;
+            seen.add(objId);
+            const imgObj = await getPageObj(page, objId);
+            if (imgObj) {
+              const card = imageObjToCard(imgObj, pageNum, found + 1);
+              if (card) { grid.appendChild(card); found++; }
+            }
+          } else if (fn === pdfjsLib.OPS.paintInlineImageXObject) {
+            const imgObj = args[0];
+            const card = imageObjToCard(imgObj, pageNum, found + 1);
+            if (card) { grid.appendChild(card); found++; }
+          }
+        }
+      }
+
+      progressFill.style.width = '100%';
+      if (mode === 'convert') {
+        filebarStatus.textContent = `${pdf.numPages}페이지 전체 변환 완료`;
+      } else {
+        filebarStatus.textContent = found > 0 ? `개별 이미지 ${found}개 + 페이지 ${pdf.numPages}장` : `페이지 ${pdf.numPages}장 렌더 완료`;
+        if (found === 0) empty.classList.add('show');
+      }
+      if (results.length > 0) dlAllBtn.classList.add('show');
+    } catch (err) {
+      filebarStatus.textContent = '처리 실패: PDF를 읽을 수 없습니다';
+    } finally {
+      drop.classList.remove('busy');
+      setTimeout(() => progressTrack.classList.remove('show'), 600);
+    }
+  }
+
+  function getPageObj(page, objId) {
+    return new Promise((resolve) => {
+      try {
+        page.objs.get(objId, (obj) => resolve(obj));
+      } catch (e) { resolve(null); }
+    });
+  }
+
+  function imageObjToCard(obj, pageNum, idx) {
+    if (!obj) return null;
+
+    // 실제로 디코딩된 비트맵이 있다면 obj.width/height가 아니라
+    // 비트맵 자체의 픽셀 크기를 기준으로 캔버스를 만들어야 합니다.
+    // 이 둘이 다른 경우(썸네일용으로 축소 디코딩된 이미지 등) obj.width/height를
+    // 그대로 쓰면 이미지가 캔버스 한쪽에만 그려지고 나머지가 잘려 보입니다.
+    const srcWidth = obj.bitmap ? obj.bitmap.width : obj.width;
+    const srcHeight = obj.bitmap ? obj.bitmap.height : obj.height;
+    if (!srcWidth || !srcHeight) return null;
+    if (srcWidth < 48 || srcHeight < 48) return null; // 아이콘/불릿 등 잡음 제거
+
+    const canvas = document.createElement('canvas');
+    canvas.width = srcWidth;
+    canvas.height = srcHeight;
+    const ctx = canvas.getContext('2d');
+
+    try {
+      if (obj.bitmap) {
+        ctx.drawImage(obj.bitmap, 0, 0, srcWidth, srcHeight);
+      } else if (obj.data) {
+        const rgba = toRGBA(obj);
+        if (!rgba) return null;
+        ctx.putImageData(new ImageData(rgba, srcWidth, srcHeight), 0, 0);
+      } else {
+        return null;
+      }
+    } catch (e) {
+      return null;
+    }
+
+    const card = document.createElement('div');
+    card.className = 'card';
+    const thumb = document.createElement('div');
+    thumb.className = 'thumb';
+    const img = document.createElement('img');
+    thumb.appendChild(img);
+    const infoDiv = document.createElement('div');
+    infoDiv.className = 'info';
+    const meta = document.createElement('div');
+    meta.className = 'meta';
+    meta.textContent = `p.${pageNum} · ${srcWidth}×${srcHeight}`;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'dl-btn';
+    btn.innerHTML = '⬇️ 저장';
+
+    card.appendChild(thumb);
+    infoDiv.appendChild(meta);
+    infoDiv.appendChild(btn);
+    card.appendChild(infoDiv);
+
+    canvas.toBlob((blob) => {
+      if (!blob) return;
+      img.src = URL.createObjectURL(blob);
+      meta.textContent = `p.${pageNum} · ${srcWidth}×${srcHeight} · ${fmtSize(blob.size)}`;
+      const filename = `page${pageNum}_image${idx}.png`;
+      results.push({ blob, filename });
+      dlAllBtn.classList.add('show');
+      btn.addEventListener('click', () => downloadBlob(blob, filename, btn));
+    }, 'image/png');
+
+    return card;
+  }
+
+  async function renderPageToCard(page, pageNum) {
+    try {
+      const viewport = page.getViewport({ scale: 2 });
+      const canvas = document.createElement('canvas');
+      canvas.width = viewport.width;
+      canvas.height = viewport.height;
+      const ctx = canvas.getContext('2d');
+      await page.render({ canvasContext: ctx, viewport }).promise;
+
+      const card = document.createElement('div');
+      card.className = 'card page-card';
+      const thumb = document.createElement('div');
+      thumb.className = 'thumb';
+      const img = document.createElement('img');
+      thumb.appendChild(img);
+      const infoDiv = document.createElement('div');
+      infoDiv.className = 'info';
+      const meta = document.createElement('div');
+      meta.className = 'meta';
+      meta.innerHTML = `<span class="badge">페이지 전체</span><br>p.${pageNum} · ${viewport.width}×${viewport.height}`;
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'dl-btn';
+      btn.innerHTML = '⬇️ 저장';
+
+      card.appendChild(thumb);
+      infoDiv.appendChild(meta);
+      infoDiv.appendChild(btn);
+      card.appendChild(infoDiv);
+
+      return await new Promise((resolve) => {
+        canvas.toBlob((blob) => {
+          if (!blob) { resolve(null); return; }
+          img.src = URL.createObjectURL(blob);
+          meta.innerHTML = `<span class="badge">페이지 전체</span><br>p.${pageNum} · ${viewport.width}×${viewport.height} · ${fmtSize(blob.size)}`;
+          const filename = `page${pageNum}_full.png`;
+          results.push({ blob, filename });
+          btn.addEventListener('click', () => downloadBlob(blob, filename, btn));
+          resolve(card);
+        }, 'image/png');
+      });
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function toRGBA(obj) {
+    const { width, height, data, kind } = obj;
+    const out = new Uint8ClampedArray(width * height * 4);
+    if (kind === 3 || (!kind && data.length === width * height * 4)) {
+      // RGBA_32BPP
+      out.set(data.subarray ? data.subarray(0, out.length) : data);
+    } else if (kind === 2 || (!kind && data.length === width * height * 3)) {
+      // RGB_24BPP
+      for (let i = 0, j = 0; i < data.length; i += 3, j += 4) {
+        out[j] = data[i]; out[j + 1] = data[i + 1]; out[j + 2] = data[i + 2]; out[j + 3] = 255;
+      }
+    } else if (kind === 1) {
+      // GRAYSCALE_1BPP
+      const rowBytes = Math.ceil(width / 8);
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          const byte = data[y * rowBytes + (x >> 3)];
+          const bit = (byte >> (7 - (x & 7))) & 1;
+          const v = bit ? 255 : 0;
+          const j = (y * width + x) * 4;
+          out[j] = v; out[j + 1] = v; out[j + 2] = v; out[j + 3] = 255;
+        }
+      }
+    } else {
+      return null;
+    }
+    return out;
+  }
+
+  async function downloadBlob(blob, filename, btn) {
+    const original = btn.innerHTML;
+    if (downloadsApi) {
+      btn.disabled = true;
+      btn.innerHTML = '저장 중…';
+      try {
+        await downloadsApi.save({ filename, data: blob });
+        btn.innerHTML = '✅ 저장됨';
+      } catch (err) {
+        btn.innerHTML = err && err.code === 'declined' ? original : '저장 실패';
+        setTimeout(() => { btn.innerHTML = original; btn.disabled = false; }, 1500);
+        return;
+      }
+      setTimeout(() => { btn.innerHTML = original; btn.disabled = false; }, 1500);
+      return;
+    }
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  }
+
+  async function downloadAll() {
+    if (results.length === 0) return;
+    const original = dlAllBtn.innerHTML;
+    dlAllBtn.disabled = true;
+
+    if (downloadsApi) {
+      // 클로드 아티팩트 뷰어는 zip 확장자를 허용하지 않으므로,
+      // 파일을 하나씩 순서대로 저장 다이얼로그에 올립니다.
+      for (let i = 0; i < results.length; i++) {
+        dlAllBtn.innerHTML = `저장 중… (${i + 1}/${results.length})`;
+        try {
+          await downloadsApi.save({ filename: results[i].filename, data: results[i].blob });
+        } catch (err) {
+          if (err && err.code === 'declined') break; // 사용자가 취소하면 중단
+          // rate_limited 등은 잠시 대기 후 계속 진행
+          await new Promise((r) => setTimeout(r, 400));
+        }
+      }
+      dlAllBtn.innerHTML = '✅ 완료';
+    } else {
+      dlAllBtn.innerHTML = '압축 중…';
+      const zip = new JSZip();
+      results.forEach((r) => zip.file(r.filename, r.blob));
+      const zipBlob = await zip.generateAsync({ type: 'blob' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(zipBlob);
+      a.download = 'extracted_images.zip';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      dlAllBtn.innerHTML = '✅ 다운로드됨';
+    }
+
+    setTimeout(() => { dlAllBtn.innerHTML = original; dlAllBtn.disabled = false; }, 1800);
+  }
+</script>
