@@ -211,7 +211,7 @@
 
       <label class="info-toggle">
         <input type="checkbox" id="include-info-toggle">
-        <span>📋 아파트 정보를 도면 우측 상단에 넣어서 저장</span>
+        <span>📋 도면 위쪽 여백에 아파트 정보를 넣어서 저장</span>
       </label>
       <div id="info-fields" hidden>
         <div class="row2">
@@ -503,28 +503,6 @@
   }
 
   // ---------- 저장 ----------
-  function roundRect(ctx, x, y, w, h, r) {
-    ctx.beginPath();
-    ctx.moveTo(x + r, y);
-    ctx.arcTo(x + w, y, x + w, y + h, r);
-    ctx.arcTo(x + w, y + h, x, y + h, r);
-    ctx.arcTo(x, y + h, x, y, r);
-    ctx.arcTo(x, y, x + w, y, r);
-    ctx.closePath();
-  }
-
-  function wrapByWidth(ctx, text, maxW) {
-    const out = [];
-    let line = '';
-    for (const ch of text) {
-      const test = line + ch;
-      if (ctx.measureText(test).width > maxW && line) { out.push(line); line = ch; }
-      else line = test;
-    }
-    if (line) out.push(line);
-    return out;
-  }
-
   async function buildStyleWithInfoCanvas() {
     await document.fonts.ready;
     const W = previewCanvas.width, H = previewCanvas.height;
@@ -532,55 +510,53 @@
     out.width = W;
     out.height = H;
     const ctx = out.getContext('2d');
-    ctx.drawImage(previewCanvas, 0, 0);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, W, H);
 
     const name = val('s-name');
     const facts = [val('s-pyeong'), val('s-area'), val('s-year'), val('s-heating')].filter(Boolean);
-    if (!name && !facts.length) return out;
+    if (!name && !facts.length) {
+      ctx.drawImage(previewCanvas, 0, 0);
+      return out;
+    }
 
-    const pad = Math.max(12, Math.round(W * 0.018));
-    const nameSize = Math.max(16, Math.round(W * 0.025));
-    const factSize = Math.max(12, Math.round(W * 0.016));
-    const maxTextW = Math.min(W * 0.44, W - pad * 4);
+    const pad = Math.max(14, Math.round(W * 0.022));
+    const nameSize = Math.max(17, Math.round(W * 0.026));
+    const factSize = Math.max(12, Math.round(W * 0.017));
+    const gap = Math.round(factSize * 0.7);
+    const factLine = facts.join(' · ');
+
+    // 도면을 조금 줄여 위쪽에 여백을 만들고, 그 자리에 글자만 올립니다.
+    const bandH = pad + (name ? nameSize : 0)
+      + (name && factLine ? gap : 0)
+      + (factLine ? factSize : 0) + pad;
+    const scale = (H - bandH) / H;
+    ctx.drawImage(previewCanvas, (W - W * scale) / 2, bandH, W * scale, H * scale);
 
     ctx.textAlign = 'right';
     ctx.textBaseline = 'alphabetic';
+    let y = pad;
 
-    const lines = [];
-    if (name) lines.push({ t: name, size: nameSize, weight: 700, color: '#2b2320' });
-    if (facts.length) {
-      ctx.font = `500 ${factSize}px "Noto Sans KR"`;
-      wrapByWidth(ctx, facts.join(' · '), maxTextW).forEach(t => {
-        lines.push({ t, size: factSize, weight: 500, color: '#6b5d53' });
-      });
+    if (name) {
+      y += nameSize * 0.82;
+      ctx.font = `700 ${nameSize}px "Noto Sans KR"`;
+      ctx.fillStyle = '#2b2320';
+      ctx.fillText(name, W - pad, y);
+      y += nameSize * 0.18 + gap;
     }
 
-    let textW = 0;
-    lines.forEach(l => {
-      ctx.font = `${l.weight} ${l.size}px "Noto Sans KR"`;
-      textW = Math.max(textW, ctx.measureText(l.t).width);
-    });
-
-    const gap = Math.round(factSize * 0.55);
-    const boxW = textW + pad * 2;
-    const boxH = lines.reduce((acc, l) => acc + l.size + gap, 0) - gap + pad * 2;
-    const boxX = W - boxW - pad;
-    const boxY = pad;
-
-    ctx.fillStyle = 'rgba(255,255,255,0.92)';
-    ctx.strokeStyle = 'rgba(180,83,9,0.35)';
-    ctx.lineWidth = Math.max(1, W * 0.0012);
-    roundRect(ctx, boxX, boxY, boxW, boxH, Math.round(pad * 0.6));
-    ctx.fill();
-    ctx.stroke();
-
-    let y = boxY + pad + lines[0].size * 0.82;
-    lines.forEach(l => {
-      ctx.font = `${l.weight} ${l.size}px "Noto Sans KR"`;
-      ctx.fillStyle = l.color;
-      ctx.fillText(l.t, boxX + boxW - pad, y);
-      y += l.size + gap;
-    });
+    if (factLine) {
+      // 한 줄에 안 들어가면 글자를 조금 줄여서 맞춥니다.
+      let fs = factSize;
+      const maxW = W - pad * 2;
+      ctx.font = `500 ${fs}px "Noto Sans KR"`;
+      while (ctx.measureText(factLine).width > maxW && fs > 9) {
+        fs -= 1;
+        ctx.font = `500 ${fs}px "Noto Sans KR"`;
+      }
+      ctx.fillStyle = '#6b5d53';
+      ctx.fillText(factLine, W - pad, y + fs * 0.82);
+    }
 
     return out;
   }
