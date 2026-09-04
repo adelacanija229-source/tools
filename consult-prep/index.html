@@ -183,8 +183,8 @@
 
     <div class="drop" id="drop">
       <div class="drop-icon">📐</div>
-      <strong>평면도 이미지를 드래그하거나 클릭해서 선택하세요</strong>
-      <div style="color:var(--text-muted); font-size:13px; margin-top:4px;">캡처한 스크린샷도 괜찮습니다</div>
+      <strong>평면도 이미지를 끌어다 놓거나 클릭해서 선택하세요</strong>
+      <div id="paste-hint" style="color:var(--text-muted); font-size:13px; margin-top:4px;">사이트에서 캡처한 뒤 <b>Ctrl + V</b>로 바로 붙여넣어도 됩니다</div>
       <input type="file" id="file-input" accept="image/*">
     </div>
 
@@ -333,6 +333,29 @@
     if (f) loadImage(f);
   });
   fileInput.addEventListener('change', (e) => { if (e.target.files[0]) loadImage(e.target.files[0]); });
+
+  // 사이트에서 평면도를 캡처한 뒤 그대로 붙여넣을 수 있게 합니다.
+  // 글자를 붙여넣을 때는 건드리지 않고, 이미지일 때만 받습니다.
+  document.addEventListener('paste', (e) => {
+    const items = e.clipboardData && e.clipboardData.items;
+    if (!items) return;
+    for (const item of items) {
+      if (item.kind === 'file' && item.type.startsWith('image/')) {
+        const file = item.getAsFile();
+        if (!file) continue;
+        e.preventDefault();
+        loadImage(file);
+        drop.style.borderColor = 'var(--accent)';
+        setTimeout(() => { drop.style.borderColor = ''; }, 700);
+        return;
+      }
+    }
+  });
+
+  // 맥에서는 단축키 표기를 바꿔 줍니다.
+  if (/Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent)) {
+    $('paste-hint').innerHTML = '사이트에서 캡처한 뒤 <b>⌘ + V</b>로 바로 붙여넣어도 됩니다';
+  }
 
   function loadImage(file) {
     const img = new Image();
