@@ -1,3 +1,5 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>상담 준비 도구</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -151,6 +153,27 @@
   footer span { display: inline-flex; align-items: center; gap: 5px; }
 
   [hidden] { display: none !important; }
+
+  @media (max-width: 480px) {
+    body { padding: 18px 12px 36px; }
+    h1 { font-size: 20px; }
+    header p { font-size: 13.5px; }
+    .card { padding: 16px 14px; border-radius: 10px; }
+
+    /* 좁은 화면에서 두 칸을 나란히 두면 글자가 다 잘립니다 */
+    .row2 { grid-template-columns: 1fr; gap: 0; }
+
+    /* iOS는 16px보다 작으면 입력할 때 화면을 멋대로 확대합니다 */
+    .field input[type="text"], .field select { font-size: 16px; padding: 12px; }
+
+    .search-btns { flex-direction: column; }
+    .style-btn { flex: 1 1 100%; padding: 13px; font-size: 14px; }
+    .chip { flex: 1 1 calc(50% - 4px); padding: 12px 10px; text-align: center; }
+    .btn { padding: 14px; }
+    .drop { padding: 24px 14px; }
+    .info-toggle { align-items: flex-start; line-height: 1.5; }
+    .fallback { font-size: 13px; }
+  }
 </style>
 
 <main>
