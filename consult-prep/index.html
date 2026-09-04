@@ -160,6 +160,10 @@
         <label for="apt-name">아파트 단지명</label>
         <input type="text" id="apt-name" placeholder="예: 래미안원베일리">
       </div>
+      <div class="field">
+        <label for="apt-pyeong">평형 (선택, 넣으면 검색이 훨씬 정확해집니다)</label>
+        <input type="text" id="apt-pyeong" placeholder="예: 34평">
+      </div>
       <button type="button" class="btn" id="make-links-btn">🔗 검색 링크 만들기</button>
       <div class="link-list" id="link-list"></div>
     </div>
@@ -300,25 +304,27 @@
 
   // ---------- 탭 1: 검색 링크 ----------
   const aptNameInput = document.getElementById('apt-name');
+  const aptPyeongInput = document.getElementById('apt-pyeong');
   const linkList = document.getElementById('link-list');
 
-  function buildLinks(name) {
-    const q = encodeURIComponent(name);
-    const qPlan = encodeURIComponent(name + ' 평면도');
+  function buildLinks(name, pyeong) {
+    // 평형까지 넣어야 특정 타입 평면도가 정확히 검색됩니다 (단지명만으로는 여러 평형이 섞여 나옵니다).
+    const nameWithPyeong = pyeong ? `${name} ${pyeong}` : name;
+    const q = encodeURIComponent(nameWithPyeong);
+    const qPlan = encodeURIComponent(nameWithPyeong + ' 평면도');
     return [
-      { label: '네이버 지도에서 위치 보기', desc: '단지 위치·주변 정보 확인', url: `https://map.naver.com/p/search/${q}` },
+      { label: '네이버 지도에서 위치 보기', desc: '단지 위치·주변 정보 확인', url: `https://map.naver.com/p/search/${encodeURIComponent(name)}` },
       { label: '구글 이미지에서 평면도 검색', desc: '가장 빠르게 평면도 이미지 모아보기', url: `https://www.google.com/search?q=${qPlan}&tbm=isch` },
-      { label: '네이버 부동산 정보 검색', desc: '시세·단지 정보', url: `https://www.google.com/search?q=${qPlan}+site:new.land.naver.com` },
       { label: '호갱노노에서 검색', desc: '실거래가·단지 상세', url: `https://www.google.com/search?q=${q}+site:hogangnono.com` },
       { label: '아실(아파트실거래가)에서 검색', desc: '실거래가·평면도', url: `https://www.google.com/search?q=${qPlan}+site:asil.kr` },
       { label: 'KB부동산에서 검색', desc: '시세·단지 정보', url: `https://www.google.com/search?q=${q}+site:kbland.kr` },
     ];
   }
 
-  function renderLinks(name) {
+  function renderLinks(name, pyeong) {
     linkList.innerHTML = '';
     if (!name.trim()) return;
-    buildLinks(name.trim()).forEach(item => {
+    buildLinks(name.trim(), pyeong.trim()).forEach(item => {
       const a = document.createElement('a');
       a.className = 'link-item';
       a.href = item.url;
@@ -329,8 +335,9 @@
     });
   }
 
-  document.getElementById('make-links-btn').addEventListener('click', () => renderLinks(aptNameInput.value));
-  aptNameInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') renderLinks(aptNameInput.value); });
+  document.getElementById('make-links-btn').addEventListener('click', () => renderLinks(aptNameInput.value, aptPyeongInput.value));
+  aptNameInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') renderLinks(aptNameInput.value, aptPyeongInput.value); });
+  aptPyeongInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') renderLinks(aptNameInput.value, aptPyeongInput.value); });
 
   // ---------- 탭 2: 도면 스타일 변환 ----------
   const drop = document.getElementById('drop');
