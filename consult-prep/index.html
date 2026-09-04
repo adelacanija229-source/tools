@@ -94,6 +94,13 @@
   }
   .btn:hover { background: var(--accent-strong); }
   .btn[aria-disabled="true"] { opacity: 0.45; pointer-events: none; }
+  .btn.secondary { background: var(--surface-2); color: var(--accent-strong); }
+  .btn.secondary:hover { background: var(--accent-soft); }
+
+  .search-btns { display: flex; gap: 8px; }
+  .search-btns .btn { flex: 1; }
+  .fallback { margin-top: 10px; font-size: 12.5px; color: var(--text-muted); text-align: center; line-height: 1.7; }
+  .fallback a { color: var(--accent-strong); font-weight: 600; text-decoration: underline; }
 
   .drop {
     border: 2px dashed var(--border); border-radius: 14px; background: var(--surface);
@@ -162,15 +169,23 @@
     </div>
     <div class="row2">
       <div class="field">
-        <label for="apt-name">아파트 단지명</label>
-        <input type="text" id="apt-name" placeholder="예: 도곡 삼성 래미안">
+        <label for="apt-region">지역 (선택, 같은 이름 단지가 많습니다)</label>
+        <input type="text" id="apt-region" placeholder="예: 도곡동">
       </div>
       <div class="field">
-        <label for="apt-pyeong">평형</label>
-        <input type="text" id="apt-pyeong" placeholder="예: 34평">
+        <label for="apt-name">아파트 단지명</label>
+        <input type="text" id="apt-name" placeholder="예: 삼성래미안">
       </div>
     </div>
-    <a class="btn" id="search-link" href="#" target="_blank" rel="noopener" aria-disabled="true">🔍 구글 이미지에서 평면도 검색</a>
+    <div class="field">
+      <label for="apt-pyeong">평형 (선택)</label>
+      <input type="text" id="apt-pyeong" placeholder="예: 34">
+    </div>
+    <div class="search-btns">
+      <a class="btn" id="search-naver" href="#" target="_blank" rel="noopener" aria-disabled="true">네이버 이미지</a>
+      <a class="btn secondary" id="search-google" href="#" target="_blank" rel="noopener" aria-disabled="true">구글 이미지</a>
+    </div>
+    <div class="fallback" id="fallback" hidden></div>
   </div>
 
   <!-- 2단계: 도면 변환 -->
@@ -281,26 +296,63 @@
   }
 
   // ---------- 1단계: 평면도 검색 ----------
-  // 링크는 구글 이미지 검색 하나만 둡니다. site: 검색은 결과 페이지만 열리고
-  // 정작 사이트로는 못 가서 뺐습니다.
+  const aptRegion = $('apt-region');
   const aptName = $('apt-name');
   const aptPyeong = $('apt-pyeong');
-  const searchLink = $('search-link');
+  const naverBtn = $('search-naver');
+  const googleBtn = $('search-google');
+  const fallback = $('fallback');
 
-  function updateSearchLink() {
+  // 평형은 공급면적, 자료에 적힌 건 전용면적이라 표기가 어긋납니다.
+  // 시장에서 굳어진 짝을 그대로 씁니다 (34평형 자료는 84㎡로 올라옵니다).
+  const PYEONG_M2 = [
+    [22, 26, 59], [27, 31, 74], [32, 36, 84], [37, 41, 101],
+    [42, 46, 114], [47, 53, 134], [54, 60, 145],
+  ];
+
+  function toM2(text) {
+    const n = parseFloat(String(text).replace(/[^0-9.]/g, ''));
+    if (!n) return null;
+    const row = PYEONG_M2.find(([lo, hi]) => n >= lo && n <= hi);
+    return row ? row[2] : null;
+  }
+
+  const naverImg = (q) => 'https://search.naver.com/search.naver?where=image&query=' + encodeURIComponent(q);
+  const googleImg = (q) => 'https://www.google.com/search?tbm=isch&q=' + encodeURIComponent(q);
+
+  function updateSearchLinks() {
+    const region = aptRegion.value.trim();
     const name = aptName.value.trim();
+    const raw = aptPyeong.value.trim();
+
     if (!name) {
-      searchLink.href = '#';
-      searchLink.setAttribute('aria-disabled', 'true');
+      [naverBtn, googleBtn].forEach(a => { a.href = '#'; a.setAttribute('aria-disabled', 'true'); });
+      fallback.hidden = true;
       return;
     }
-    const pyeong = aptPyeong.value.trim();
-    const q = [name, pyeong, '평면도'].filter(Boolean).join(' ');
-    searchLink.href = 'https://www.google.com/search?tbm=isch&q=' + encodeURIComponent(q);
-    searchLink.removeAttribute('aria-disabled');
+
+    // 숫자만 적었을 때만 단위를 붙입니다. "34평"처럼 이미 쓴 건 그대로 둡니다.
+    const pyeong = raw ? (/^[0-9.]+$/.test(raw) ? raw + '평' : raw) : '';
+    const main = [region, name, pyeong, '평면도'].filter(Boolean).join(' ');
+    naverBtn.href = naverImg(main);
+    googleBtn.href = googleImg(main);
+    [naverBtn, googleBtn].forEach(a => a.setAttribute('aria-disabled', 'false'));
+
+    // 안 나올 때 쓸 두 갈래: 전용면적 표기로 다시 찾기, 그리고 입주자모집공고.
+    // 모집공고에는 단위세대 평면도가 반드시 들어 있어서 오래된 단지도 나옵니다.
+    const m2 = toM2(raw);
+    const links = [];
+    if (m2) {
+      const alt = [region, name, m2 + '㎡', '평면도'].filter(Boolean).join(' ');
+      links.push(`<a href="${naverImg(alt)}" target="_blank" rel="noopener">${m2}㎡로 검색</a>`);
+    }
+    const notice = [region, name, '입주자모집공고'].filter(Boolean).join(' ');
+    links.push(`<a href="${googleImg(notice)}" target="_blank" rel="noopener">입주자모집공고</a>`);
+    fallback.innerHTML = '안 나오면 → ' + links.join(' · ');
+    fallback.hidden = false;
   }
-  aptName.addEventListener('input', updateSearchLink);
-  aptPyeong.addEventListener('input', updateSearchLink);
+
+  [aptRegion, aptName, aptPyeong].forEach(el => el.addEventListener('input', updateSearchLinks));
 
   // ---------- 2단계: 도면 변환 ----------
   const drop = $('drop');
