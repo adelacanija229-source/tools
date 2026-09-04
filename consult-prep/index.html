@@ -151,7 +151,7 @@
   <header>
     <span class="eyebrow">🏠 LOCAL WEB APP</span>
     <h1>고객 상담 준비 도구</h1>
-    <p>평면도를 찾아 라인·청사진·공간 구분 스타일로 바꾸고, 아파트 정보까지 얹어 상담 자료 한 장으로 저장합니다. 모든 처리는 이 브라우저 안에서만 이뤄집니다.</p>
+    <p>평면도를 찾아 라인 도면·공간 구분 스타일로 바꾸고, 아파트 정보까지 얹어 상담 자료 한 장으로 저장합니다. 모든 처리는 이 브라우저 안에서만 이뤄집니다.</p>
   </header>
 
   <!-- 1단계: 평면도 찾기 -->
@@ -191,7 +191,6 @@
     <div class="opt-label">스타일</div>
     <div class="style-toggle">
       <button type="button" class="style-btn active" data-style="line">⬛ 라인 도면</button>
-      <button type="button" class="style-btn" data-style="blueprint">🔷 청사진</button>
       <button type="button" class="style-btn" data-style="zone">🎨 공간 구분</button>
     </div>
 
@@ -424,17 +423,10 @@
     if (currentStyle === 'zone') {
       applyZoneColors(d, W, H, threshold);
     } else {
-      const blueprintBg = [26, 58, 92];
       for (let i = 0; i < d.length; i += 4) {
         const gray = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
-        const isLine = gray < threshold;
-        if (currentStyle === 'line') {
-          const v = isLine ? 0 : 255;
-          d[i] = v; d[i + 1] = v; d[i + 2] = v;
-        } else {
-          if (isLine) { d[i] = 255; d[i + 1] = 255; d[i + 2] = 255; }
-          else { d[i] = blueprintBg[0]; d[i + 1] = blueprintBg[1]; d[i + 2] = blueprintBg[2]; }
-        }
+        const v = gray < threshold ? 0 : 255;
+        d[i] = v; d[i + 1] = v; d[i + 2] = v;
         d[i + 3] = 255;
       }
     }
