@@ -134,6 +134,14 @@
   #preview-wrap.show { display: block; }
   #preview-canvas, #card-canvas { width: 100%; height: auto; border-radius: 10px; border: 1px solid var(--border); background: var(--surface); }
 
+  .info-toggle {
+    display: flex; align-items: center; gap: 8px; margin-top: 14px;
+    font-size: 13px; font-weight: 600; color: var(--text); cursor: pointer;
+  }
+  .info-toggle input { width: 16px; height: 16px; accent-color: var(--accent); }
+  #info-fields { margin-top: 12px; padding: 14px; background: var(--surface-2); border-radius: 10px; }
+  #info-fields .field:last-child { margin-bottom: 0; }
+
   footer { margin-top: 22px; display: flex; gap: 16px; font-size: 12px; color: var(--text-muted); flex-wrap: wrap; }
   footer span { display: inline-flex; align-items: center; gap: 5px; }
 
@@ -190,6 +198,32 @@
 
       <div id="preview-wrap">
         <canvas id="preview-canvas"></canvas>
+
+        <label class="info-toggle">
+          <input type="checkbox" id="include-info-toggle">
+          <span>📋 아파트 정보도 함께 넣어서 저장 (상담 자료용 최종본)</span>
+        </label>
+        <div id="info-fields" hidden>
+          <div class="row2">
+            <div class="field"><label for="s-name">아파트명</label><input type="text" id="s-name" placeholder="예: 래미안원베일리"></div>
+            <div class="field"><label for="s-pyeong">평형</label><input type="text" id="s-pyeong" placeholder="예: 34평"></div>
+          </div>
+          <div class="row2">
+            <div class="field"><label for="s-year">준공년도</label><input type="text" id="s-year" placeholder="예: 2023년"></div>
+            <div class="field"><label for="s-area">전용면적</label><input type="text" id="s-area" placeholder="예: 84.98㎡"></div>
+          </div>
+          <div class="field">
+            <label for="s-heating">난방 방식</label>
+            <select id="s-heating">
+              <option value="">-</option>
+              <option value="개별난방 (도시가스)">개별난방 (도시가스)</option>
+              <option value="지역난방">지역난방</option>
+              <option value="중앙난방">중앙난방</option>
+              <option value="기타">기타</option>
+            </select>
+          </div>
+        </div>
+
         <button type="button" class="btn" id="download-style-btn" style="margin-top:12px;">⬇️ 이미지 저장</button>
       </div>
     </div>
@@ -347,9 +381,21 @@
   const thresholdInput = document.getElementById('threshold');
   const styleBtns = [...document.querySelectorAll('.style-btn')];
   const downloadStyleBtn = document.getElementById('download-style-btn');
+  const includeInfoToggle = document.getElementById('include-info-toggle');
+  const infoFieldsWrap = document.getElementById('info-fields');
 
   let currentImg = null;
   let currentStyle = 'line';
+
+  includeInfoToggle.addEventListener('change', () => {
+    infoFieldsWrap.hidden = !includeInfoToggle.checked;
+    if (includeInfoToggle.checked) {
+      const sName = document.getElementById('s-name');
+      const sPyeong = document.getElementById('s-pyeong');
+      if (!sName.value && aptNameInput.value) sName.value = aptNameInput.value;
+      if (!sPyeong.value && aptPyeongInput.value) sPyeong.value = aptPyeongInput.value;
+    }
+  });
 
   drop.addEventListener('click', () => fileInput.click());
   drop.addEventListener('dragover', (e) => { e.preventDefault(); drop.style.borderColor = 'var(--accent)'; });
@@ -407,8 +453,72 @@
     ctx.putImageData(imageData, 0, 0);
   }
 
-  downloadStyleBtn.addEventListener('click', () => {
-    previewCanvas.toBlob((blob) => {
+  async function buildStyleWithInfoCanvas() {
+    await document.fonts.ready;
+    const W = previewCanvas.width;
+    const pad = Math.max(24, Math.round(W * 0.035));
+    const nameSize = Math.max(22, Math.round(W * 0.032));
+    const labelSize = Math.max(13, Math.round(W * 0.016));
+    const valueSize = Math.max(15, Math.round(W * 0.019));
+    const rowH = Math.round(valueSize * 2.1);
+
+    const fields = [
+      ['평형', document.getElementById('s-pyeong').value],
+      ['준공년도', document.getElementById('s-year').value],
+      ['전용면적', document.getElementById('s-area').value],
+      ['난방 방식', document.getElementById('s-heating').value],
+    ].filter(([, v]) => v);
+    const rows = Math.max(1, Math.ceil(fields.length / 2));
+    const infoH = pad + nameSize + 16 + rows * rowH + pad;
+
+    const out = document.createElement('canvas');
+    out.width = W;
+    out.height = previewCanvas.height + infoH;
+    const ctx = out.getContext('2d');
+
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, W, out.height);
+    ctx.drawImage(previewCanvas, 0, 0);
+
+    const barY = previewCanvas.height;
+    ctx.fillStyle = '#fef3c7';
+    ctx.fillRect(0, barY, W, infoH);
+    ctx.strokeStyle = '#f0c674';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(0, barY);
+    ctx.lineTo(W, barY);
+    ctx.stroke();
+
+    ctx.textBaseline = 'alphabetic';
+    let y = barY + pad + nameSize * 0.75;
+    const name = document.getElementById('s-name').value || '아파트명 미입력';
+    ctx.fillStyle = '#2b2320';
+    ctx.font = `700 ${nameSize}px "Noto Sans KR"`;
+    ctx.fillText(name, pad, y);
+
+    y += nameSize * 0.5 + 20;
+    const colW = (W - pad * 2) / 2;
+    fields.forEach(([label, value], i) => {
+      const col = i % 2;
+      const row = Math.floor(i / 2);
+      const x = pad + col * colW;
+      const ly = y + row * rowH;
+      ctx.fillStyle = '#8a7a6f';
+      ctx.font = `600 ${labelSize}px "Noto Sans KR"`;
+      ctx.fillText(label, x, ly);
+      ctx.fillStyle = '#2b2320';
+      ctx.font = `700 ${valueSize}px "Noto Sans KR"`;
+      ctx.fillText(value, x, ly + valueSize + 4);
+    });
+
+    return out;
+  }
+
+  downloadStyleBtn.addEventListener('click', async () => {
+    if (!currentImg) return;
+    const finalCanvas = includeInfoToggle.checked ? await buildStyleWithInfoCanvas() : previewCanvas;
+    finalCanvas.toBlob((blob) => {
       if (blob) downloadBlob(blob, `floorplan_${currentStyle}.png`, downloadStyleBtn);
     }, 'image/png');
   });
