@@ -132,7 +132,7 @@
 
   #preview-wrap { display: none; margin-top: 16px; }
   #preview-wrap.show { display: block; }
-  #preview-canvas, #card-canvas { width: 100%; height: auto; border-radius: 10px; border: 1px solid var(--border); background: var(--surface); }
+  #preview-canvas { width: 100%; height: auto; border-radius: 10px; border: 1px solid var(--border); background: var(--surface); }
 
   .info-toggle {
     display: flex; align-items: center; gap: 8px; margin-top: 14px;
@@ -152,13 +152,12 @@
   <header>
     <span class="eyebrow">🏠 LOCAL WEB APP</span>
     <h1>고객 상담 준비 도구</h1>
-    <p>상담 전 평면도 찾기부터 도면 스타일 변환, 아파트 정보 카드까지 한 번에 준비합니다. 모든 처리는 이 브라우저 안에서만 이뤄집니다.</p>
+    <p>상담 전 평면도를 찾고, 라인·청사진 스타일로 바꾼 뒤 아파트 정보까지 함께 넣어 상담 자료 이미지 한 장으로 저장합니다. 모든 처리는 이 브라우저 안에서만 이뤄집니다.</p>
   </header>
 
   <div class="tabs">
     <button type="button" class="tab-btn active" data-tab="links">🔍 평면도 찾기</button>
     <button type="button" class="tab-btn" data-tab="style">📐 도면 스타일 변환</button>
-    <button type="button" class="tab-btn" data-tab="cardtab">📋 아파트 정보 카드</button>
   </div>
 
   <!-- 탭 1: 평면도 찾기 -->
@@ -225,61 +224,6 @@
         </div>
 
         <button type="button" class="btn" id="download-style-btn" style="margin-top:12px;">⬇️ 이미지 저장</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- 탭 3: 아파트 정보 카드 -->
-  <div class="panel" id="panel-cardtab">
-    <div class="card">
-      <div class="field">
-        <label for="c-name">아파트명</label>
-        <input type="text" id="c-name" placeholder="예: 래미안원베일리">
-      </div>
-      <div class="row2">
-        <div class="field">
-          <label for="c-year">준공년도</label>
-          <input type="text" id="c-year" placeholder="예: 2023년">
-        </div>
-        <div class="field">
-          <label for="c-households">총 세대수</label>
-          <input type="text" id="c-households" placeholder="예: 2990세대">
-        </div>
-      </div>
-      <div class="row2">
-        <div class="field">
-          <label for="c-area-ex">전용면적</label>
-          <input type="text" id="c-area-ex" placeholder="예: 84.98㎡">
-        </div>
-        <div class="field">
-          <label for="c-area-sup">공급면적</label>
-          <input type="text" id="c-area-sup" placeholder="예: 112.4㎡">
-        </div>
-      </div>
-      <div class="row2">
-        <div class="field">
-          <label for="c-heating">난방 방식</label>
-          <select id="c-heating">
-            <option value="개별난방 (도시가스)">개별난방 (도시가스)</option>
-            <option value="지역난방">지역난방</option>
-            <option value="중앙난방">중앙난방</option>
-            <option value="기타">기타</option>
-          </select>
-        </div>
-        <div class="field">
-          <label for="c-parking">주차 대수</label>
-          <input type="text" id="c-parking" placeholder="예: 세대당 1.2대">
-        </div>
-      </div>
-      <div class="field">
-        <label for="c-memo">메모</label>
-        <textarea id="c-memo" placeholder="상담 전 체크할 내용을 자유롭게 적어주세요"></textarea>
-      </div>
-      <button type="button" class="btn" id="make-card-btn">📋 정보 카드 만들기</button>
-
-      <div id="card-preview-wrap" style="display:none; margin-top:16px;">
-        <canvas id="card-canvas"></canvas>
-        <button type="button" class="btn" id="download-card-btn" style="margin-top:12px;">⬇️ 카드 이미지 저장</button>
       </div>
     </div>
   </div>
@@ -523,138 +467,4 @@
     }, 'image/png');
   });
 
-  // ---------- 탭 3: 아파트 정보 카드 ----------
-  const cardCanvas = document.getElementById('card-canvas');
-  const cardPreviewWrap = document.getElementById('card-preview-wrap');
-  const downloadCardBtn = document.getElementById('download-card-btn');
-
-  function wrapText(ctx, text, x, y, maxWidth, lineHeight) {
-    const words = text.split('');
-    let line = '';
-    let curY = y;
-    for (const ch of words) {
-      const test = line + ch;
-      if (ctx.measureText(test).width > maxWidth && line) {
-        ctx.fillText(line, x, curY);
-        line = ch;
-        curY += lineHeight;
-      } else {
-        line = test;
-      }
-    }
-    if (line) ctx.fillText(line, x, curY);
-    return curY;
-  }
-
-  async function drawCard() {
-    await document.fonts.ready;
-    const W = 800, H = 1000;
-    cardCanvas.width = W;
-    cardCanvas.height = H;
-    const ctx = cardCanvas.getContext('2d');
-
-    // 배경
-    const grad = ctx.createLinearGradient(0, 0, 0, H);
-    grad.addColorStop(0, '#fffbf5');
-    grad.addColorStop(1, '#fef3c7');
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, W, H);
-
-    // 헤더 배지
-    ctx.fillStyle = '#ffffff';
-    ctx.strokeStyle = '#fcd34d';
-    ctx.lineWidth = 2;
-    roundRect(ctx, 48, 48, 140, 34, 17);
-    ctx.fill(); ctx.stroke();
-    ctx.fillStyle = '#b45309';
-    ctx.font = '700 14px "Noto Sans KR"';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('🏠 상담 준비 자료', 62, 66);
-
-    // 아파트명
-    const name = document.getElementById('c-name').value || '아파트명 미입력';
-    ctx.fillStyle = '#2b2320';
-    ctx.font = '800 40px "Noto Sans KR"';
-    ctx.textBaseline = 'alphabetic';
-    wrapText(ctx, name, 48, 150, W - 96, 50);
-
-    // 구분선
-    ctx.strokeStyle = '#f0e8e1';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(48, 200);
-    ctx.lineTo(W - 48, 200);
-    ctx.stroke();
-
-    // 정보 그리드
-    const rows = [
-      ['준공년도', document.getElementById('c-year').value || '-'],
-      ['총 세대수', document.getElementById('c-households').value || '-'],
-      ['전용면적', document.getElementById('c-area-ex').value || '-'],
-      ['공급면적', document.getElementById('c-area-sup').value || '-'],
-      ['난방 방식', document.getElementById('c-heating').value],
-      ['주차 대수', document.getElementById('c-parking').value || '-'],
-    ];
-
-    let y = 250;
-    const rowH = 70;
-    rows.forEach(([label, value], i) => {
-      if (i % 2 === 0) {
-        ctx.fillStyle = 'rgba(255,255,255,0.6)';
-        roundRect(ctx, 48, y - 32, W - 96, rowH - 12, 10);
-        ctx.fill();
-      }
-      ctx.fillStyle = '#8a7a6f';
-      ctx.font = '600 15px "Noto Sans KR"';
-      ctx.fillText(label, 68, y);
-      ctx.fillStyle = '#2b2320';
-      ctx.font = '700 20px "Noto Sans KR"';
-      ctx.fillText(String(value), 220, y + 2);
-      y += rowH;
-    });
-
-    // 메모
-    const memo = document.getElementById('c-memo').value;
-    if (memo) {
-      ctx.fillStyle = '#ffffff';
-      ctx.strokeStyle = '#f3dfc4';
-      ctx.lineWidth = 1;
-      const memoY = y + 10;
-      roundRect(ctx, 48, memoY, W - 96, 180, 10);
-      ctx.fill(); ctx.stroke();
-      ctx.fillStyle = '#9a3412';
-      ctx.font = '700 15px "Noto Sans KR"';
-      ctx.fillText('메모', 68, memoY + 32);
-      ctx.fillStyle = '#524643';
-      ctx.font = '400 16px "Noto Sans KR"';
-      wrapText(ctx, memo, 68, memoY + 64, W - 136, 26);
-    }
-
-    // 푸터
-    ctx.fillStyle = '#a8907a';
-    ctx.font = '400 13px "Noto Sans KR"';
-    const today = new Date();
-    const dateStr = `${today.getFullYear()}. ${today.getMonth() + 1}. ${today.getDate()}. 생성`;
-    ctx.fillText(dateStr, 48, H - 32);
-
-    cardPreviewWrap.style.display = 'block';
-  }
-
-  function roundRect(ctx, x, y, w, h, r) {
-    ctx.beginPath();
-    ctx.moveTo(x + r, y);
-    ctx.arcTo(x + w, y, x + w, y + h, r);
-    ctx.arcTo(x + w, y + h, x, y + h, r);
-    ctx.arcTo(x, y + h, x, y, r);
-    ctx.arcTo(x, y, x + w, y, r);
-    ctx.closePath();
-  }
-
-  document.getElementById('make-card-btn').addEventListener('click', drawCard);
-  downloadCardBtn.addEventListener('click', () => {
-    cardCanvas.toBlob((blob) => {
-      const name = document.getElementById('c-name').value || 'apartment';
-      if (blob) downloadBlob(blob, `${name}_정보카드.png`, downloadCardBtn);
-    }, 'image/png');
-  });
 </script>
