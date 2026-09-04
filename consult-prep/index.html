@@ -131,7 +131,6 @@
     width: 100%; height: auto; border-radius: 10px;
     border: 1px solid var(--border); background: #fff;
   }
-  #busy { font-size: 12px; color: var(--accent-strong); margin-top: 8px; }
 
   .info-toggle {
     display: flex; align-items: center; gap: 8px; margin-top: 14px;
@@ -151,7 +150,7 @@
   <header>
     <span class="eyebrow">🏠 LOCAL WEB APP</span>
     <h1>고객 상담 준비 도구</h1>
-    <p>평면도를 찾아 라인 도면·공간 구분 스타일로 바꾸고, 아파트 정보까지 얹어 상담 자료 한 장으로 저장합니다. 모든 처리는 이 브라우저 안에서만 이뤄집니다.</p>
+    <p>평면도를 찾아 깔끔한 흑백 도면으로 정리하고, 좌우가 뒤집힌 세대는 대칭으로 맞춘 뒤, 아파트 정보까지 얹어 상담 자료 한 장으로 저장합니다. 모든 처리는 이 브라우저 안에서만 이뤄집니다.</p>
   </header>
 
   <!-- 1단계: 평면도 찾기 -->
@@ -192,7 +191,6 @@
     <div class="style-toggle">
       <button type="button" class="style-btn" data-style="original">🖼 원본</button>
       <button type="button" class="style-btn active" data-style="line">⬛ 라인 도면</button>
-      <button type="button" class="style-btn" data-style="zone">🎨 공간 구분</button>
     </div>
 
     <div class="opt-label">대칭</div>
@@ -208,7 +206,6 @@
 
     <div id="preview-wrap">
       <canvas id="preview-canvas"></canvas>
-      <div id="busy" hidden>공간을 나누는 중…</div>
 
       <label class="info-toggle">
         <input type="checkbox" id="include-info-toggle">
@@ -311,7 +308,6 @@
   const previewWrap = $('preview-wrap');
   const previewCanvas = $('preview-canvas');
   const thresholdInput = $('threshold');
-  const busy = $('busy');
   const styleBtns = [...document.querySelectorAll('.style-btn')];
   const flipHBtn = $('flip-h');
   const flipVBtn = $('flip-v');
@@ -395,13 +391,7 @@
     renderStyle();
   });
 
-  // 공간 구분은 픽셀을 훑어야 해서, 슬라이더를 끄는 동안엔 잠깐 기다렸다 계산합니다.
-  let sliderTimer = null;
-  thresholdInput.addEventListener('input', () => {
-    if (currentStyle !== 'zone') { renderStyle(); return; }
-    clearTimeout(sliderTimer);
-    sliderTimer = setTimeout(renderStyle, 160);
-  });
+  thresholdInput.addEventListener('input', renderStyle);
 
   includeInfoToggle.addEventListener('change', () => {
     infoFieldsWrap.hidden = !includeInfoToggle.checked;
@@ -420,20 +410,6 @@
 
   function renderStyle() {
     if (!currentImg) return;
-    if (currentStyle !== 'zone') {
-      busy.hidden = true;
-      drawStyle();
-      return;
-    }
-    // 공간 구분은 계산이 길어질 수 있어, 안내를 먼저 그려 놓고 시작합니다.
-    busy.hidden = false;
-    requestAnimationFrame(() => requestAnimationFrame(() => {
-      drawStyle();
-      busy.hidden = true;
-    }));
-  }
-
-  function drawStyle() {
     const W = currentImg.width, H = currentImg.height;
     previewCanvas.width = W;
     previewCanvas.height = H;
@@ -446,90 +422,17 @@
 
     if (currentStyle === 'original') return;
 
+    // 기준값보다 어두우면 선, 밝으면 배경으로 놓아 흑백 도면만 남깁니다.
     const imageData = ctx.getImageData(0, 0, W, H);
     const d = imageData.data;
     const threshold = Number(thresholdInput.value);
-
-    if (currentStyle === 'zone') {
-      applyZoneColors(d, W, H, threshold);
-    } else {
-      for (let i = 0; i < d.length; i += 4) {
-        const gray = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
-        const v = gray < threshold ? 0 : 255;
-        d[i] = v; d[i + 1] = v; d[i + 2] = v;
-        d[i + 3] = 255;
-      }
-    }
-    ctx.putImageData(imageData, 0, 0);
-  }
-
-  // 벽(어두운 선)으로 둘러싸인 방을 하나씩 찾아 서로 다른 색으로 칠합니다.
-  // 따뜻한 뉴트럴 그레이. 붙어 있는 방이 헷갈리지 않게 밝기를 지그재그로 놓았습니다.
-  const ZONE_COLORS = [
-    [232, 228, 223], [176, 170, 163], [216, 211, 205], [195, 189, 182],
-    [225, 221, 216], [185, 179, 172], [206, 201, 195], [166, 160, 153],
-  ];
-
-  function applyZoneColors(d, w, h, threshold) {
-    const n = w * h;
-    const wall = new Uint8Array(n);
-    for (let p = 0; p < n; p++) {
-      const i = p * 4;
-      wall[p] = (0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2]) < threshold ? 1 : 0;
-    }
-
-    const label = new Int32Array(n).fill(-1);
-    const stack = new Int32Array(n);
-    const regions = [];
-
-    for (let start = 0; start < n; start++) {
-      if (wall[start] || label[start] !== -1) continue;
-      const id = regions.length;
-      let sp = 0;
-      stack[sp++] = start;
-      label[start] = id;
-      let area = 0;
-      let touchesBorder = false;
-
-      while (sp > 0) {
-        const cur = stack[--sp];
-        area++;
-        const x = cur % w;
-        const y = (cur / w) | 0;
-        if (x === 0 || y === 0 || x === w - 1 || y === h - 1) touchesBorder = true;
-        if (x > 0)     { const nb = cur - 1; if (!wall[nb] && label[nb] === -1) { label[nb] = id; stack[sp++] = nb; } }
-        if (x < w - 1) { const nb = cur + 1; if (!wall[nb] && label[nb] === -1) { label[nb] = id; stack[sp++] = nb; } }
-        if (y > 0)     { const nb = cur - w; if (!wall[nb] && label[nb] === -1) { label[nb] = id; stack[sp++] = nb; } }
-        if (y < h - 1) { const nb = cur + w; if (!wall[nb] && label[nb] === -1) { label[nb] = id; stack[sp++] = nb; } }
-      }
-      regions.push({ area, touchesBorder });
-    }
-
-    // 도면 바깥(테두리에 닿는 영역)과 글자 사이 자잘한 틈은 칠하지 않습니다.
-    const minArea = Math.max(300, Math.floor(n * 0.0006));
-    const colorOf = new Int32Array(regions.length).fill(-1);
-    let ci = 0;
-    regions
-      .map((r, i) => ({ r, i }))
-      .filter(({ r }) => !r.touchesBorder && r.area >= minArea)
-      .sort((a, b) => b.r.area - a.r.area)
-      .forEach(({ i }) => { colorOf[i] = ci % ZONE_COLORS.length; ci++; });
-
-    for (let p = 0; p < n; p++) {
-      const i = p * 4;
-      if (wall[p]) {
-        d[i] = 38; d[i + 1] = 34; d[i + 2] = 31;
-      } else {
-        const c = colorOf[label[p]];
-        if (c >= 0) {
-          const col = ZONE_COLORS[c];
-          d[i] = col[0]; d[i + 1] = col[1]; d[i + 2] = col[2];
-        } else {
-          d[i] = 255; d[i + 1] = 255; d[i + 2] = 255;
-        }
-      }
+    for (let i = 0; i < d.length; i += 4) {
+      const gray = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+      const v = gray < threshold ? 0 : 255;
+      d[i] = v; d[i + 1] = v; d[i + 2] = v;
       d[i + 3] = 255;
     }
+    ctx.putImageData(imageData, 0, 0);
   }
 
   // ---------- 저장 ----------
