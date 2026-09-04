@@ -190,6 +190,7 @@
 
     <div class="opt-label">스타일</div>
     <div class="style-toggle">
+      <button type="button" class="style-btn" data-style="original">🖼 원본</button>
       <button type="button" class="style-btn active" data-style="line">⬛ 라인 도면</button>
       <button type="button" class="style-btn" data-style="zone">🎨 공간 구분</button>
     </div>
@@ -200,8 +201,8 @@
       <button type="button" class="chip" id="flip-v">↕ 상하 반전</button>
     </div>
 
-    <div class="opt-label">선명도</div>
-    <div class="slider-row">
+    <div class="opt-label" id="sharpness-label">선명도</div>
+    <div class="slider-row" id="sharpness-row">
       <input type="range" id="threshold" min="80" max="220" value="150">
     </div>
 
@@ -375,6 +376,10 @@
       styleBtns.forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       currentStyle = btn.dataset.style;
+      // 원본에는 선명도가 쓰이지 않으니 숨깁니다.
+      const isOriginal = currentStyle === 'original';
+      $('sharpness-label').hidden = isOriginal;
+      $('sharpness-row').hidden = isOriginal;
       renderStyle();
     });
   });
@@ -438,6 +443,8 @@
     ctx.setTransform(flipH ? -1 : 1, 0, 0, flipV ? -1 : 1, flipH ? W : 0, flipV ? H : 0);
     ctx.drawImage(currentImg, 0, 0);
     ctx.restore();
+
+    if (currentStyle === 'original') return;
 
     const imageData = ctx.getImageData(0, 0, W, H);
     const d = imageData.data;
