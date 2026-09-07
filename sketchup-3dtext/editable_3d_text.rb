@@ -71,33 +71,107 @@ module Antigravity
       end
 
       dialog.add_action_callback('apply') do |_action_context, params|
-        model = Sketchup.active_model
-        model.start_operation(target_group ? '3D 텍스트 수정' : '새 3D 텍스트 생성', true)
-
-        begin
-          if target_group && target_group.valid?
+        if target_group && target_group.valid?
+          model = Sketchup.active_model
+          model.start_operation('3D 텍스트 수정', true)
+          begin
             update_existing_text(target_group, params)
-          else
-            create_new_text(params)
+            model.commit_operation
+            dialog.close
+          rescue => e
+            model.abort_operation
+            UI.messagebox("오류가 발생했습니다: #{e.message}")
           end
-          model.commit_operation
+        else
+          # 새로 만들 때는 바로 원점에 찍지 않고, 붙일 면을 클릭하게 한다
           dialog.close
-        rescue => e
-          model.abort_operation
-          UI.messagebox("오류가 발생했습니다: #{e.message}")
+          Sketchup.active_model.select_tool(PlaceTextTool.new(params))
         end
       end
 
       dialog.show
     end
 
-    def self.create_new_text(data)
+    # 면을 클릭한 지점 + 그 면의 법선(normal) 방향으로 텍스트를 배치한다.
+    # 스케치업 기본 3D 텍스트 도구와 같은 원리: 클릭한 면의 xyz축에 맞춰 붙는다.
+    def self.create_new_text_at(data, point, normal)
       model = Sketchup.active_model
-      entities = model.active_entities
-      group = entities.add_group
-      build_3d_text_inside_group(group, data)
-      model.selection.clear
-      model.selection.add(group)
+      model.start_operation('새 3D 텍스트 생성', true)
+      begin
+        group = model.active_entities.add_group
+        build_3d_text_inside_group(group, data)
+        group.transformation = Geom::Transformation.new(point, normal)
+        model.selection.clear
+        model.selection.add(group)
+        model.commit_operation
+      rescue => e
+        model.abort_operation
+        UI.messagebox("오류가 발생했습니다: #{e.message}")
+      end
+    end
+
+    # ── 면-스냅 배치 도구 ──────────────────────────────────────
+    # 마우스가 가리키는 면을 따라가다가, 클릭한 면의 법선 방향으로
+    # 텍스트의 돌출(Z)축을 맞춰 배치한다. 면이 없으면 바닥(Z축) 기준.
+    class PlaceTextTool
+      ACCENT = Sketchup::Color.new(217, 119, 6)
+
+      def initialize(data)
+        @data = data
+        @ip = Sketchup::InputPoint.new
+        @point = nil
+        @normal = Z_AXIS
+      end
+
+      def activate
+        Sketchup.set_status_text('붙일 면을 클릭하세요 (면이 없으면 바닥 기준으로 놓입니다)', SB_PROMPT)
+      end
+
+      def deactivate(view)
+        view.invalidate
+      end
+
+      def onMouseMove(_flags, x, y, view)
+        @ip.pick(view, x, y)
+        @point = @ip.position
+        @normal = @ip.face ? @ip.face.normal : Z_AXIS
+        view.invalidate
+      end
+
+      def onLButtonDown(_flags, x, y, view)
+        @ip.pick(view, x, y)
+        point = @ip.position
+        normal = @ip.face ? @ip.face.normal : Z_AXIS
+        data = @data
+        view.model.select_tool(nil)
+        Editable3DText.create_new_text_at(data, point, normal)
+      end
+
+      def onCancel(_reason, view)
+        view.model.select_tool(nil)
+      end
+
+      def onKeyUp(key, _repeat, _flags, view)
+        view.model.select_tool(nil) if key == VK_ESCAPE
+      end
+
+      def draw(view)
+        return unless @point
+        @ip.draw(view) if @ip.valid?
+        s = 15.cm
+        tr = Geom::Transformation.new(@point, @normal)
+        corners = [
+          Geom::Point3d.new(-s, -s, 0),
+          Geom::Point3d.new(s, -s, 0),
+          Geom::Point3d.new(s, s, 0),
+          Geom::Point3d.new(-s, s, 0)
+        ].map { |p| p.transform(tr) }
+        view.drawing_color = ACCENT
+        view.line_width = 2
+        view.draw(GL_LINE_LOOP, corners)
+        view.line_stipple = ''
+        view.draw(GL_LINES, [@point, @point.offset(@normal, 25.cm)])
+      end
     end
 
     def self.update_existing_text(group, data)
@@ -196,6 +270,7 @@ module Antigravity
   <div class="header">
     <h2>#{is_edit_mode ? '✏️ 3D 텍스트 속성 수정' : '✨ 새 3D 텍스트 만들기'}</h2>
   </div>
+  #{is_edit_mode ? '' : '<p style="font-size:12px;color:#8c7e75;margin:-10px 0 16px;">아래를 채우고 "3D 텍스트 생성"을 누르면, 이어서 붙일 면을 클릭하게 됩니다.</p>'}
 
   <div class="form-group">
     <label for="txt-content">텍스트 내용</label>
@@ -330,7 +405,7 @@ module Antigravity
 
       new_cmd = UI::Command.new('새 3D 텍스트') { open_dialog(nil) }
       new_cmd.tooltip         = '새 3D 텍스트 생성'
-      new_cmd.status_bar_text = '수정 가능한 3D 텍스트를 새로 만듭니다.'
+      new_cmd.status_bar_text = '수정 가능한 3D 텍스트를 새로 만듭니다. 클릭한 면에 자동으로 붙습니다.'
       if (s = icon('icon_24.png')) then new_cmd.small_icon = s end
       if (l = icon('icon_32.png')) then new_cmd.large_icon = l end
       toolbar.add_item(new_cmd)
