@@ -285,6 +285,14 @@ module Antigravity
          .gsub('"', '&quot;')
     end
 
+    # 아이콘은 이 파일과 같은 이름의 폴더 안에 둡니다.
+    ICON_DIR = File.join(File.dirname(__FILE__), 'editable_3d_text')
+
+    def self.icon(name)
+      path = File.join(ICON_DIR, name)
+      File.exist?(path) ? path : nil
+    end
+
     unless file_loaded?(__FILE__)
       ext_menu = UI.menu('Plugins') || UI.menu('Extensions')
       sub_menu = ext_menu.add_submenu('✏️ 3D 텍스트 편집기')
@@ -316,6 +324,36 @@ module Antigravity
           end
         end
       end
+
+      # ── 툴바 (아이콘 버튼) ──────────────────────────────
+      toolbar = UI::Toolbar.new('3D 텍스트 편집기')
+
+      new_cmd = UI::Command.new('새 3D 텍스트') { open_dialog(nil) }
+      new_cmd.tooltip         = '새 3D 텍스트 생성'
+      new_cmd.status_bar_text = '수정 가능한 3D 텍스트를 새로 만듭니다.'
+      if (s = icon('icon_24.png')) then new_cmd.small_icon = s end
+      if (l = icon('icon_32.png')) then new_cmd.large_icon = l end
+      toolbar.add_item(new_cmd)
+
+      edit_cmd = UI::Command.new('3D 텍스트 수정') {
+        sel = Sketchup.active_model.selection
+        if !sel.empty? && sel.first.is_a?(Sketchup::Group)
+          open_dialog(sel.first)
+        else
+          UI.messagebox('수정할 3D 텍스트 그룹을 먼저 선택해주세요.')
+        end
+      }
+      edit_cmd.tooltip         = '선택한 3D 텍스트 수정'
+      edit_cmd.status_bar_text = '선택한 3D 텍스트의 문구·폰트·크기를 다시 고칩니다.'
+      edit_cmd.set_validation_proc {
+        sel = Sketchup.active_model.selection
+        (sel.length == 1 && sel.first.is_a?(Sketchup::Group)) ? MF_ENABLED : MF_GRAYED
+      }
+      if (s = icon('icon_edit_24.png')) then edit_cmd.small_icon = s end
+      if (l = icon('icon_edit_32.png')) then edit_cmd.large_icon = l end
+      toolbar.add_item(edit_cmd)
+
+      toolbar.restore
 
       file_loaded(__FILE__)
     end
