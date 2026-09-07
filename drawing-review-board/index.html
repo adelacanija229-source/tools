@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>YESKIM Drawing Review | Design Workspace</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Manrope:wght@500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@400,0" rel="stylesheet" />
+    <link rel="stylesheet" href="./board.css" />
+    <link rel="stylesheet" href="./editor.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <a class="brand-lockup" href="#" aria-label="YESKIM Drawing Review Home">
+          <img
+            class="brand-vector"
+            src="./assets/DLOGO2.png"
+            data-logo-light="./assets/DLOGO2.png"
+            data-logo-dark="./assets/DLOGO3.png"
+            alt="YESKIM Drawing Review"
+          />
+        </a>
+
+        <div class="top-toolrail" aria-label="Board tools">
+          <button class="ghost-button icon-button" type="button" id="saveProject" aria-label="Save workspace" title="Save workspace">
+            <span class="material-symbols-outlined">cloud_done</span>
+          </button>
+          <button class="ghost-button icon-button" type="button" id="saveLayout" aria-label="Save layout" title="Save layout">
+            <span class="material-symbols-outlined">save</span>
+          </button>
+          <button class="ghost-button icon-button" type="button" id="loadLayout" aria-label="Load layout" title="Load layout">
+            <span class="material-symbols-outlined">folder_open</span>
+          </button>
+          <button class="ghost-button icon-button" type="button" id="exportWorkspace" aria-label="Export workspace" title="Export workspace">
+            <span class="material-symbols-outlined">upload_file</span>
+          </button>
+          <button class="ghost-button icon-button" type="button" id="importWorkspace" aria-label="Import workspace" title="Import workspace">
+            <span class="material-symbols-outlined">download</span>
+          </button>
+          <button class="ghost-button icon-button" type="button" id="fullscreenBoard" aria-label="Fullscreen board" title="Fullscreen board">
+            <span class="material-symbols-outlined">fullscreen</span>
+          </button>
+          <button class="mode-button icon-button is-active" type="button" data-mode="designer" aria-label="Designer mode" title="Designer">
+            <span class="material-symbols-outlined">edit</span>
+          </button>
+          <button class="mode-button icon-button" type="button" data-mode="client" aria-label="Client view" title="Client view">
+            <span class="material-symbols-outlined">visibility</span>
+          </button>
+          <button class="ghost-button icon-button" type="button" id="themeToggle" aria-label="Toggle dark mode" title="Dark mode">
+            <span class="material-symbols-outlined">dark_mode</span>
+          </button>
+          <button class="ghost-button icon-button" type="button" id="completeProject" aria-label="Complete board" title="Complete board">
+            <span class="material-symbols-outlined">check_circle</span>
+          </button>
+        </div>
+
+        <div class="topbar-spacer" aria-hidden="true"></div>
+      </header>
+
+      <aside class="workspace-sidebar" aria-label="Project workspace">
+        <div class="workspace-title">
+          <div>
+            <strong>Workspace</strong>
+            <small>Project files</small>
+          </div>
+        </div>
+
+        <div class="project-folder" aria-label="Project and board controls">
+          <p class="eyebrow">Projects</p>
+          <label class="folder-field">
+            <span>Project</span>
+            <div class="folder-control">
+              <select class="project-select" id="projectSelect" aria-label="Project"></select>
+              <button class="secondary-button icon-button folder-icon-action" type="button" id="newProject" aria-label="New project" title="New project">
+                <span class="material-symbols-outlined">create_new_folder</span>
+              </button>
+              <button class="secondary-button danger-button icon-button folder-icon-action" type="button" id="deleteProject" aria-label="Delete project" title="Delete project">
+                <span class="material-symbols-outlined">delete</span>
+              </button>
+            </div>
+          </label>
+
+          <p class="eyebrow">Boards</p>
+          <label class="folder-field">
+            <span>Board</span>
+            <div class="folder-control">
+              <select class="project-select board-select" id="boardSelect" aria-label="Board"></select>
+              <button class="secondary-button icon-button folder-icon-action" type="button" id="newBoard" aria-label="New board" title="New board">
+                <span class="material-symbols-outlined">dashboard_customize</span>
+              </button>
+              <button class="secondary-button danger-button icon-button folder-icon-action" type="button" id="deleteBoard" aria-label="Delete board" title="Delete board">
+                <span class="material-symbols-outlined">delete</span>
+              </button>
+            </div>
+          </label>
+        </div>
+
+        <div class="sidebar-reference designer-only" aria-label="Reference images">
+          <div class="sidebar-reference-head">
+            <p class="eyebrow">Reference</p>
+            <button class="secondary-button icon-button" type="button" id="addBoardReference" aria-label="Add reference image" title="Add reference">
+              <span class="material-symbols-outlined">add_photo_alternate</span>
+            </button>
+          </div>
+          <div id="boardReferenceList" class="board-reference-list"></div>
+        </div>
+      </aside>
+
+      <main class="board-workspace">
+        <section class="board-stage" aria-labelledby="boardTitle">
+          <div class="board-heading">
+            <div class="progress-card" aria-label="Board status">
+              <strong id="boardTitle">Sample Project - Board 1</strong>
+              <span id="progressText">Draft</span>
+              <div class="progress-track"><span id="progressBar"></span></div>
+            </div>
+          </div>
+
+          <div class="sketchbook-frame">
+            <div class="paper-meta">
+              <span>YESKIM Drawing Review</span>
+              <span>Board 1</span>
+              <span>2026.04.18</span>
+            </div>
+            <div id="sampleCanvas" class="sample-canvas" aria-label="Design canvas"></div>
+            <div class="paper-footer">
+              <span>Made with YESKIM Design System.</span>
+              <span id="openSlotCount">Draft</span>
+            </div>
+          </div>
+        </section>
+
+        <aside class="choice-panel" aria-labelledby="panelTitle">
+          <div id="choicePanel"></div>
+        </aside>
+      </main>
+
+      <section class="bottom-drawer" aria-label="Draft and references">
+        <div class="drawer-tabs" role="tablist" aria-label="Drawer view">
+          <button class="drawer-tab is-active" type="button" data-tab="spec">Spec</button>
+          <button class="drawer-tab" type="button" data-tab="references">References</button>
+        </div>
+        <div id="drawerContent"></div>
+      </section>
+    </div>
+
+    <div id="referenceModal" class="reference-modal" hidden>
+      <section class="reference-dialog" role="dialog" aria-modal="true" aria-label="Reference preview">
+        <button class="reference-close ghost-button icon-button" type="button" data-close-reference-modal aria-label="Close reference preview">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+        <img id="referencePreviewImage" alt="Reference preview">
+      </section>
+    </div>
+
+    <div id="linkModal" class="link-modal" hidden>
+      <section class="link-dialog" role="dialog" aria-modal="true" aria-labelledby="linkModalTitle">
+        <header class="link-dialog-head">
+          <div>
+            <p class="eyebrow">Link Library</p>
+            <h2 id="linkModalTitle">Connect a link</h2>
+          </div>
+          <button class="ghost-button icon-button" type="button" data-close-link-modal aria-label="Close link library">
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </header>
+        <div class="link-add-form">
+          <label>Title<input id="linkTitleInput" autocomplete="off"></label>
+          <label>URL<input id="linkUrlInput" autocomplete="off" inputmode="url"></label>
+          <button class="primary-button" type="button" id="addLinkEntry"><span class="material-symbols-outlined">add</span> Add link</button>
+        </div>
+        <div id="linkList" class="link-list"></div>
+      </section>
+    </div>
+
+    <div id="nameModal" class="name-modal" hidden>
+      <section class="name-dialog" role="dialog" aria-modal="true" aria-labelledby="nameModalTitle">
+        <header class="name-dialog-head">
+          <div>
+            <p class="eyebrow" id="nameModalEyebrow">Workspace</p>
+            <h2 id="nameModalTitle">Create</h2>
+          </div>
+          <button class="ghost-button icon-button" type="button" data-close-name-modal aria-label="Close dialog">
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </header>
+        <p id="nameModalDescription" class="name-dialog-copy"></p>
+        <label id="nameModalLabel" class="name-dialog-field">Name
+          <input id="nameModalInput" autocomplete="off">
+        </label>
+        <p id="nameModalError" class="name-dialog-error" role="alert"></p>
+        <div class="name-dialog-actions">
+          <button class="secondary-button" type="button" data-close-name-modal>Cancel</button>
+          <button class="primary-button" type="button" id="nameModalConfirm">Create</button>
+        </div>
+      </section>
+    </div>
+
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    <script src="./editor.js"></script>
+  </body>
+</html>
