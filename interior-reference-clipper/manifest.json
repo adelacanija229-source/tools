@@ -1,0 +1,17 @@
+{
+  "manifest_version": 3,
+  "name": "Interior Reference Clipper",
+  "description": "Clip interior material references, product images, and links into a side-panel library.",
+  "version": "0.1.0",
+  "permissions": ["storage", "activeTab", "downloads", "scripting", "tabs", "sidePanel"],
+  "host_permissions": ["<all_urls>"],
+  "action": {
+    "default_title": "Interior Reference Clipper"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "side_panel": {
+    "default_path": "popup.html"
+  }
+}
