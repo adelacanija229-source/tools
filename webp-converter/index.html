@@ -1,3 +1,6 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>즉석 WebP 변환기</title>
@@ -17,6 +20,9 @@
     --border: #ecdfd0;
     --success: #15803d;
     --success-soft: #eaf7ee;
+    --danger: #b91c1c;
+    --danger-soft: #fef2f2;
+    --danger-border: #fecaca;
     --shadow: 0 1px 2px rgba(43,33,25,0.04), 0 8px 24px rgba(43,33,25,0.06);
   }
   @media (prefers-color-scheme: dark) {
@@ -32,6 +38,9 @@
       --border: #3c2f26;
       --success: #4ade80;
       --success-soft: #17291d;
+      --danger: #fca5a5;
+      --danger-soft: #2c1717;
+      --danger-border: #5b2626;
       --shadow: 0 1px 2px rgba(0,0,0,0.2), 0 8px 24px rgba(0,0,0,0.35);
     }
   }
@@ -47,11 +56,15 @@
     --border: #3c2f26;
     --success: #4ade80;
     --success-soft: #17291d;
+    --danger: #fca5a5;
+    --danger-soft: #2c1717;
+    --danger-border: #5b2626;
     --shadow: 0 1px 2px rgba(0,0,0,0.2), 0 8px 24px rgba(0,0,0,0.35);
   }
 
   * { box-sizing: border-box; }
   body {
+    margin: 0;
     background: var(--bg);
     color: var(--text);
     font-family: "Noto Sans KR", "Malgun Gothic", sans-serif;
@@ -152,6 +165,19 @@
     padding: 10px 12px;
     box-shadow: var(--shadow);
   }
+  .item.err {
+    grid-template-columns: 1fr;
+    background: var(--danger-soft);
+    border-color: var(--danger-border);
+    box-shadow: none;
+  }
+  .item.err .name { color: var(--danger); }
+  .item.err .meta {
+    font-family: inherit;
+    color: var(--text);
+    line-height: 1.65;
+    white-space: normal;
+  }
   .item img {
     width: 44px;
     height: 44px;
@@ -176,16 +202,28 @@
     color: var(--success);
     font-weight: 600;
   }
+  .item .note {
+    font-family: inherit;
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 3px;
+    line-height: 1.55;
+  }
   .item .state {
     font-size: 12px;
     color: var(--text-muted);
   }
+  .btns { display: flex; flex-direction: column; gap: 6px; }
   .dl-btn {
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 6px;
     background: var(--accent);
     color: #fff;
+    border: none;
+    font-family: inherit;
+    cursor: pointer;
     text-decoration: none;
     padding: 8px 12px;
     border-radius: 8px;
@@ -194,6 +232,12 @@
     white-space: nowrap;
   }
   .dl-btn:hover { background: var(--accent-strong); }
+  .dl-btn.sub {
+    background: var(--surface-2);
+    color: var(--accent-strong);
+    border: 1px solid var(--border);
+  }
+  .dl-btn.sub:hover { background: var(--accent-soft); }
 
   footer {
     margin-top: 22px;
@@ -207,6 +251,8 @@
 
   [hidden] { display: none !important; }
 </style>
+</head>
+<body>
 
 <main>
   <header>
@@ -219,7 +265,7 @@
     <div class="drop-icon">🖼️</div>
     <strong>이미지를 드래그하거나 클릭해서 선택하세요</strong>
     <span>PNG / JPG 여러 장 동시 지원</span>
-    <input type="file" id="file-input" accept="image/png,image/jpeg" multiple>
+    <input type="file" id="file-input" accept="image/*" multiple>
   </div>
 
   <div class="controls">
@@ -244,14 +290,21 @@
   const qualityEl = document.getElementById('quality');
   const qualityVal = document.getElementById('quality-val');
 
-  let downloadsApi = null;
-  (async () => {
-    try {
-      if (window.claude && typeof window.claude.use === 'function') {
-        downloadsApi = await window.claude.use('downloads');
-      }
-    } catch (e) { downloadsApi = null; }
+  // 아이폰은 사진 앱이 WebP를 안 받아서, 저장 경로를 따로 안내해야 합니다.
+  const IS_IOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
+    || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  // 휴대폰 캔버스는 픽셀 수 한계가 있어, 넘으면 toBlob이 조용히 실패합니다.
+  const MAX_PIXELS = 16000000;
+
+  // 이 브라우저가 WebP로 저장할 수 있는지 먼저 확인합니다.
+  // 안 되는데 그냥 요청하면 파일명만 .webp 이고 내용은 PNG 인 파일이 나옵니다.
+  const CAN_WEBP = (() => {
+    const c = document.createElement('canvas');
+    c.width = c.height = 1;
+    return c.toDataURL('image/webp').indexOf('data:image/webp') === 0;
   })();
+  const OUT_MIME = CAN_WEBP ? 'image/webp' : 'image/jpeg';
+  const OUT_EXT = CAN_WEBP ? 'webp' : 'jpg';
 
   qualityEl.addEventListener('input', () => {
     qualityVal.textContent = Math.round(qualityEl.value * 100) + '%';
@@ -268,7 +321,10 @@
   input.addEventListener('change', (e) => handleFiles(e.target.files));
 
   function handleFiles(fileList) {
-    [...fileList].filter(f => /^image\/(png|jpeg)$/.test(f.type)).forEach(convertOne);
+    [...fileList].forEach((f) => {
+      if (f.type.startsWith('image/')) convertOne(f);
+      else showError(f.name, '이미지 파일이 아닙니다. PNG 또는 JPG를 올려주세요.');
+    });
   }
 
   function fmtSize(bytes) {
@@ -277,65 +333,134 @@
       : Math.round(bytes / 1024) + 'KB';
   }
 
+  function esc(s) {
+    return String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  }
+
+  function showError(name, msg) {
+    const li = document.createElement('li');
+    li.className = 'item err';
+    li.innerHTML = '<div><div class="name">' + esc(name) + '</div><div class="meta">' + msg + '</div></div>';
+    list.prepend(li);
+  }
+
   function convertOne(file) {
     const li = document.createElement('li');
     li.className = 'item';
     const thumbUrl = URL.createObjectURL(file);
-    li.innerHTML = `
-      <img src="${thumbUrl}" alt="">
-      <div>
-        <div class="name">${file.name}</div>
-        <div class="meta state">변환 중…</div>
-      </div>
-      <span></span>
-    `;
+    li.innerHTML = '<img src="' + thumbUrl + '" alt="">'
+      + '<div><div class="name">' + esc(file.name) + '</div>'
+      + '<div class="meta state">변환 중…</div></div><span class="slot"></span>';
     list.prepend(li);
 
     const img = new Image();
-    img.onload = () => {
-      const canvas = document.createElement('canvas');
-      canvas.width = img.width;
-      canvas.height = img.height;
-      canvas.getContext('2d').drawImage(img, 0, 0);
-      canvas.toBlob((blob) => {
-        const saved = Math.max(0, Math.round((1 - blob.size / file.size) * 100));
-        const meta = li.querySelector('.meta');
-        meta.innerHTML = `${fmtSize(file.size)} → ${fmtSize(blob.size)} <span class="saved">-${saved}%</span>`;
-        const outName = file.name.replace(/\.[^.]+$/, '') + '.webp';
 
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = 'dl-btn';
-        btn.innerHTML = '⬇️ 다운로드';
-        btn.addEventListener('click', () => downloadBlob(blob, outName, btn));
-        li.querySelector('span').replaceWith(btn);
-      }, 'image/webp', parseFloat(qualityEl.value));
+    img.onerror = () => {
+      URL.revokeObjectURL(thumbUrl);
+      li.remove();
+      showError(file.name,
+        '이 이미지를 읽지 못했습니다.<br>'
+        + '아이폰에서 찍은 사진은 <b>HEIC</b> 형식이라 안드로이드·PC 브라우저에서 열리지 않습니다.<br>'
+        + '아이폰 <b>설정 → 카메라 → 포맷 → 높은 호환성</b>으로 바꾸거나, JPG로 저장한 뒤 올려주세요.');
     };
+
+    img.onload = () => {
+      let w = img.naturalWidth || img.width;
+      let h = img.naturalHeight || img.height;
+      if (!w || !h) {
+        URL.revokeObjectURL(thumbUrl);
+        li.remove();
+        showError(file.name, '이미지 크기를 읽지 못했습니다.');
+        return;
+      }
+
+      // 너무 큰 사진은 줄여서 그립니다. 안 그러면 변환이 통째로 실패합니다.
+      let scaled = false;
+      if (w * h > MAX_PIXELS) {
+        const r = Math.sqrt(MAX_PIXELS / (w * h));
+        w = Math.floor(w * r);
+        h = Math.floor(h * r);
+        scaled = true;
+      }
+
+      const canvas = document.createElement('canvas');
+      canvas.width = w;
+      canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+
+      canvas.toBlob((blob) => {
+        if (!blob) {
+          URL.revokeObjectURL(thumbUrl);
+          li.remove();
+          showError(file.name, '변환에 실패했습니다. 사진 크기가 너무 크면 실패할 수 있으니, 조금 작은 사진으로 다시 시도해주세요.');
+          return;
+        }
+        render(li, blob, file, scaled, w, h);
+      }, OUT_MIME, parseFloat(qualityEl.value));
+    };
+
     img.src = thumbUrl;
   }
 
-  async function downloadBlob(blob, filename, btn) {
-    const original = btn.innerHTML;
-    if (downloadsApi) {
-      btn.disabled = true;
-      btn.innerHTML = '저장 중…';
-      try {
-        await downloadsApi.save({ filename, data: blob });
-        btn.innerHTML = '✅ 저장됨';
-      } catch (err) {
-        btn.innerHTML = err && err.code === 'declined' ? original : '저장 실패';
-        setTimeout(() => { btn.innerHTML = original; btn.disabled = false; }, 1500);
-        return;
-      }
-      setTimeout(() => { btn.innerHTML = original; btn.disabled = false; }, 1500);
-      return;
+  function render(li, blob, file, scaled, w, h) {
+    const outName = file.name.replace(/\.[^.]+$/, '') + '.' + OUT_EXT;
+    const url = URL.createObjectURL(blob);
+    const saved = Math.max(0, Math.round((1 - blob.size / file.size) * 100));
+
+    const meta = li.querySelector('.meta');
+    meta.classList.remove('state');
+    meta.innerHTML = fmtSize(file.size) + ' → ' + fmtSize(blob.size)
+      + ' <span class="saved">-' + saved + '%</span>';
+
+    const notes = [];
+    if (scaled) notes.push('사진이 커서 ' + w + '×' + h + ' 로 줄여 변환했습니다.');
+    if (!CAN_WEBP) notes.push('이 브라우저는 WebP 저장을 지원하지 않아 <b>JPG</b>로 변환했습니다.');
+    if (IS_IOS) notes.push('아이폰은 사진 앱이 WebP를 지원하지 않습니다. [저장/공유] 후 <b>"파일에 저장"</b>을 선택하세요.');
+    if (notes.length) {
+      const p = document.createElement('div');
+      p.className = 'note';
+      p.innerHTML = notes.join('<br>');
+      meta.parentNode.appendChild(p);
     }
-    // 클로드 아티팩트 뷰어가 아닌 일반 웹 호스팅(예: 블로그 임베드)에서는 표준 다운로드 링크로 저장합니다.
+
+    const box = document.createElement('div');
+    box.className = 'btns';
+
+    // 1순위: 공유 시트. 아이폰에서 '파일에 저장'까지 갈 수 있는 가장 확실한 길입니다.
+    let shared = false;
+    try {
+      const f = new File([blob], outName, { type: OUT_MIME });
+      if (navigator.canShare && navigator.canShare({ files: [f] })) {
+        shared = true;
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'dl-btn';
+        b.innerHTML = '📤 저장 / 공유';
+        b.addEventListener('click', () => navigator.share({ files: [f], title: outName }).catch(() => {}));
+        box.appendChild(b);
+      }
+    } catch (e) { /* 공유 불가 환경은 아래 방법으로 */ }
+
+    // 2순위: 일반 다운로드. PC와 안드로이드는 이걸로 바로 저장됩니다.
     const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
+    a.href = url;
+    a.download = outName;
+    a.className = 'dl-btn' + (shared ? ' sub' : '');
+    a.innerHTML = '⬇️ 다운로드';
+    box.appendChild(a);
+
+    // 3순위: 아이폰에서 위 둘이 막혔을 때. 새 탭으로 열면 사파리 공유 버튼을 쓸 수 있습니다.
+    if (IS_IOS) {
+      const o = document.createElement('button');
+      o.type = 'button';
+      o.className = 'dl-btn sub';
+      o.innerHTML = '↗️ 새 탭에서 열기';
+      o.addEventListener('click', () => window.open(url, '_blank'));
+      box.appendChild(o);
+    }
+
+    li.querySelector('.slot').replaceWith(box);
   }
 </script>
+</body>
+</html>
