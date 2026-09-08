@@ -1,0 +1,861 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>자택방문 실측 보고서</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800;900&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #fcfcfc;
+    --surface: #ffffff;
+    --surface-2: #f5f5f5;
+    --text: #1a1a1a;
+    --text-muted: #888888;
+    --line: #ececec;
+    --line-strong: #e0e0e0;
+    --accent: #9c2c2c;
+    --accent-soft: #f7ecec;
+    --danger: #b91c1c;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Pretendard", "Noto Sans KR", -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+    font-size: 16px;
+    line-height: 1.5;
+  }
+  .app { max-width: 520px; margin: 0 auto; min-height: 100vh; background: var(--bg); display: flex; flex-direction: column; }
+
+  header.bar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 20px 14px; border-bottom: 1px solid #f0f0f0; background: var(--surface);
+    position: sticky; top: 0; z-index: 10;
+  }
+  header.bar h1 { font-size: 15px; font-weight: 800; margin: 0; letter-spacing: -0.3px; }
+  header.bar .count { font-size: 12px; color: var(--text-muted); font-weight: 600; }
+  .iconbtn {
+    background: none; border: none; color: #333; font-size: 18px;
+    cursor: pointer; padding: 4px 8px; font-family: inherit; line-height: 1;
+  }
+
+  main { padding: 22px 20px 40px; flex: 1; }
+  .step { font-size: 11.5px; color: var(--accent); font-weight: 800; letter-spacing: 0.06em; margin: 0 0 20px; }
+
+  .field { margin-bottom: 20px; }
+  .field label { display: block; font-size: 13px; color: var(--text-muted); margin-bottom: 8px; font-weight: 700; }
+  .field .opt { color: #bbb; font-weight: 500; }
+  input[type="text"], input[type="date"], input[type="number"], textarea {
+    width: 100%; padding: 14px 16px; background: var(--surface);
+    border: 1px solid var(--line-strong); border-radius: 14px; color: var(--text);
+    font-size: 16px; font-family: inherit; line-height: 1.4;
+  }
+  textarea { resize: vertical; min-height: 76px; }
+  input:focus, textarea:focus { outline: 2px solid var(--accent); outline-offset: 1px; border-color: transparent; }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip {
+    padding: 9px 15px; border-radius: 40px; background: var(--surface-2);
+    border: 1px solid #efefef; color: #666; font-size: 14px; font-family: inherit;
+    cursor: pointer;
+  }
+  .chip[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); font-weight: 800; }
+
+  .photo-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .photo-btn {
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+    padding: 22px 12px; border-radius: 16px; border: 1.5px dashed var(--line-strong);
+    background: #fafafa; cursor: pointer; font-weight: 700; font-size: 14px;
+    color: #555; font-family: inherit;
+  }
+  .photo-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .shot { position: relative; border-radius: 16px; overflow: hidden; background: #f4f4f4; }
+  .shot img { width: 100%; display: block; max-height: 46vh; object-fit: contain; }
+  .shot .retake {
+    position: absolute; right: 10px; bottom: 10px;
+    background: rgba(0,0,0,0.62); color: #fff; border: none; border-radius: 10px;
+    padding: 8px 13px; font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit;
+  }
+
+  .dims { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .dims .unit { font-size: 11px; color: #bbb; margin-top: 5px; display: block; text-align: center; }
+
+  .btn {
+    display: block; width: 100%; padding: 17px; border-radius: 18px;
+    background: var(--accent); color: #fff; border: none;
+    font-size: 16px; font-weight: 800; cursor: pointer; font-family: inherit;
+    box-shadow: 0 8px 24px rgba(156,44,44,0.18);
+  }
+  .btn:disabled { background: #cfcfcf; box-shadow: none; cursor: not-allowed; }
+  .btn.ghost {
+    background: var(--surface); color: var(--accent);
+    border: 1px solid var(--line-strong); box-shadow: none;
+  }
+  .btn + .btn { margin-top: 10px; }
+
+  ul.items { list-style: none; margin: 0 0 20px; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+  .card {
+    background: var(--surface); border: 1px solid #f0f0f0; border-radius: 16px;
+    overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+  }
+  .card .thumb { background: #f4f4f4; display: flex; align-items: center; justify-content: center; }
+  .card .thumb img { width: 100%; max-height: 40vh; object-fit: contain; display: block; }
+  .card .body { padding: 13px 15px; }
+  .card .top { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; }
+  .badge { background: var(--accent); color: #fff; font-size: 11px; font-weight: 800; padding: 2px 8px; border-radius: 6px; }
+  .card .space { font-size: 15px; font-weight: 800; }
+  .card .del { margin-left: auto; background: none; border: none; color: #c9c9c9; font-size: 13px; cursor: pointer; font-family: inherit; }
+  .card .del:hover { color: var(--danger); }
+  .sizes { display: flex; gap: 14px; flex-wrap: wrap; }
+  .sizes b { color: var(--accent); font-weight: 800; }
+  .sizes span { font-size: 14px; color: #555; font-weight: 700; }
+  .sizes i { color: #bbb; font-size: 11px; font-style: normal; font-weight: 400; }
+  .memo { font-size: 13px; color: var(--text-muted); line-height: 1.5; margin-top: 8px; padding: 8px 10px; background: #fafafa; border-radius: 8px; }
+
+  .empty { text-align: center; color: #bbb; font-size: 14px; padding: 40px 0; }
+  .warn {
+    background: #fffaf5; border: 1px solid #f0e2d4; border-radius: 12px;
+    padding: 13px 15px; font-size: 12.5px; color: #7a5c44; line-height: 1.65; margin-bottom: 20px;
+  }
+  .warn b { color: #9a3412; }
+
+  .sheet { position: fixed; inset: 0; background: rgba(0,0,0,0.45); display: flex; align-items: center; justify-content: center; z-index: 100; padding: 20px; }
+  .sheet .box { background: #fff; border-radius: 20px; padding: 26px 22px; max-width: 380px; width: 100%; text-align: center; }
+  .sheet h2 { font-size: 17px; margin: 0 0 8px; font-weight: 800; }
+  .sheet p { font-size: 13.5px; color: var(--text-muted); margin: 0 0 20px; line-height: 1.6; }
+  .spinner {
+    width: 34px; height: 34px; margin: 0 auto 16px;
+    border: 3px solid #eee; border-top-color: var(--accent); border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) { .spinner { animation-duration: 2.4s; } }
+
+  .stage { display: none; }
+  .stage.on { display: block; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- ── STEP 1 · 방문 정보 ─────────────────────────────────────────── -->
+  <section class="stage on" id="stage-info">
+    <header class="bar">
+      <h1>자택방문 실측 보고서</h1>
+      <span class="count" id="info-count"></span>
+    </header>
+    <main>
+      <p class="step">STEP 1 · 방문 정보 입력</p>
+
+      <div class="field">
+        <label for="f-client">고객명</label>
+        <input type="text" id="f-client" placeholder="예: 김○○ 고객님" autocomplete="off">
+      </div>
+      <div class="field">
+        <label for="f-addr">주소 <span class="opt">(선택)</span></label>
+        <input type="text" id="f-addr" placeholder="예: 서울시 강남구 ○○아파트 101동 1001호" autocomplete="off">
+      </div>
+      <div class="field">
+        <label for="f-date">방문일</label>
+        <input type="date" id="f-date">
+      </div>
+      <div class="field">
+        <label for="f-designer">담당자 <span class="opt">(선택)</span></label>
+        <input type="text" id="f-designer" placeholder="예: 이 실장" autocomplete="off">
+      </div>
+      <div class="field">
+        <label for="f-team">회사 · 팀 이름 <span class="opt">(선택 · 보고서 머리글에 들어갑니다)</span></label>
+        <input type="text" id="f-team" placeholder="예: ○○디자인 스튜디오" autocomplete="off">
+      </div>
+
+      <button class="btn" id="go-add">다음 → 가구 촬영 시작</button>
+      <button class="btn ghost" id="go-list" hidden>측정 목록 보기</button>
+    </main>
+  </section>
+
+  <!-- ── STEP 2 · 아이템 추가 ───────────────────────────────────────── -->
+  <section class="stage" id="stage-add">
+    <header class="bar">
+      <button class="iconbtn" id="add-back" aria-label="뒤로">✕</button>
+      <h1>가구 추가</h1>
+      <span class="count" id="add-count"></span>
+    </header>
+    <main>
+      <p class="step">STEP 2 · 가구 정보 입력</p>
+
+      <div class="field">
+        <label>공간</label>
+        <div class="chips" id="space-chips"></div>
+        <input type="text" id="f-space-custom" placeholder="직접 입력 (예: 침실2, 발코니)" style="margin-top:10px" autocomplete="off">
+      </div>
+
+      <div class="field">
+        <label>사진</label>
+        <div id="photo-empty">
+          <div class="photo-btns">
+            <button type="button" class="photo-btn" id="btn-camera">📷 촬영</button>
+            <button type="button" class="photo-btn" id="btn-gallery">🖼 갤러리</button>
+          </div>
+          <input type="file" id="in-camera" accept="image/*" capture="environment" hidden>
+          <input type="file" id="in-gallery" accept="image/*" hidden>
+        </div>
+        <div class="shot" id="photo-shot" hidden>
+          <img id="photo-img" alt="촬영한 가구 사진">
+          <button type="button" class="retake" id="btn-retake">다시 찍기</button>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>크기 <span class="opt">(mm · 선택)</span></label>
+        <div class="dims">
+          <div>
+            <input type="number" id="f-w" placeholder="W" inputmode="numeric" min="0">
+            <span class="unit">가로</span>
+          </div>
+          <div>
+            <input type="number" id="f-d" placeholder="D" inputmode="numeric" min="0">
+            <span class="unit">깊이</span>
+          </div>
+          <div>
+            <input type="number" id="f-h" placeholder="H" inputmode="numeric" min="0">
+            <span class="unit">높이</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="f-memo">메모 <span class="opt">(선택)</span></label>
+        <textarea id="f-memo" placeholder="예: 상판 유리, 다리 원목 / 이사 시 분해 필요"></textarea>
+      </div>
+
+      <button class="btn" id="btn-save-item">+ 목록에 추가</button>
+    </main>
+  </section>
+
+  <!-- ── STEP 3 · 목록 / PDF ────────────────────────────────────────── -->
+  <section class="stage" id="stage-list">
+    <header class="bar">
+      <button class="iconbtn" id="list-back" aria-label="처음으로">✕</button>
+      <h1 id="list-title">측정 목록</h1>
+      <span class="count" id="list-count"></span>
+    </header>
+    <main>
+      <div class="warn">
+        <b>⚠️ 새로고침하면 사라집니다.</b> 사진과 입력값은 브라우저 메모리에만 있습니다.
+        측정이 끝나면 <b>현장에서 바로</b> PDF를 만들어 저장·공유하세요.
+      </div>
+
+      <ul class="items" id="item-list"></ul>
+      <p class="empty" id="list-empty">아직 추가된 가구가 없습니다.</p>
+
+      <button class="btn ghost" id="btn-more">+ 가구 더 추가</button>
+      <button class="btn" id="btn-pdf">📄 PDF 보고서 만들기</button>
+    </main>
+  </section>
+
+</div>
+
+<!-- ── PDF 생성 시트 ────────────────────────────────────────────────── -->
+<div class="sheet" id="pdf-sheet" hidden>
+  <div class="box">
+    <div id="pdf-busy">
+      <div class="spinner"></div>
+      <h2>PDF 만드는 중…</h2>
+      <p id="pdf-progress">사진을 정리하고 있습니다.</p>
+    </div>
+    <div id="pdf-done" hidden>
+      <h2>보고서가 준비됐습니다</h2>
+      <p id="pdf-summary"></p>
+      <button class="btn" id="btn-share">📤 저장 / 공유</button>
+      <button class="btn ghost" id="btn-download">⬇️ 다운로드</button>
+      <button class="btn ghost" id="btn-close-sheet">닫기</button>
+    </div>
+    <div id="pdf-error" hidden>
+      <h2>PDF를 만들지 못했습니다</h2>
+      <p id="pdf-error-msg"></p>
+      <button class="btn ghost" id="btn-close-sheet2">닫기</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  // ── 상수 ────────────────────────────────────────────────────────────
+  var SPACES = ['거실', '안방', '침실', '주방/다이닝', '드레스룸', '서재', '현관'];
+
+  // A4 픽셀 기준 (96dpi: 210mm = 794px, 297mm = 1123px)
+  var A4_W = 794, A4_H = 1123;
+  var MARGIN = 30;
+  var GRID_TOP = 100;
+  var GRID_BOTTOM = A4_H - 54;
+  var GAP = 14;
+  var CELL_W = (A4_W - MARGIN * 2 - GAP) / 2;
+  var CELL_H = (GRID_BOTTOM - GRID_TOP - GAP) / 2;
+  var INFO_H = 96;
+  var PHOTO_H = CELL_H - INFO_H;
+  var ITEMS_PER_PAGE = 4;
+  var SCALE = 2;                 // 캔버스 해상도 배수
+  var PHOTO_MAX_DIM = 1400;      // PDF에 넣기 전 사진 축소 한도
+  var FONT = '"Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif';
+
+  // ── 상태 ────────────────────────────────────────────────────────────
+  var items = [];        // { id, space, file, url, width, depth, height, memo }
+  var cur = { url: '', file: null };
+  var pdfBlob = null, pdfName = '';
+
+  var $ = function (id) { return document.getElementById(id); };
+
+  // ── 화면 전환 ───────────────────────────────────────────────────────
+  function show(name) {
+    ['info', 'add', 'list'].forEach(function (s) {
+      $('stage-' + s).classList.toggle('on', s === name);
+    });
+    window.scrollTo(0, 0);
+    if (name === 'list') renderList();
+    syncCounts();
+  }
+
+  function syncCounts() {
+    var label = items.length ? items.length + '개' : '';
+    $('info-count').textContent = label;
+    $('add-count').textContent = label;
+    $('list-count').textContent = label;
+    $('go-list').hidden = items.length === 0;
+  }
+
+  // ── STEP 1 ──────────────────────────────────────────────────────────
+  (function initDate() {
+    var d = new Date();
+    var pad = function (n) { return String(n).padStart(2, '0'); };
+    $('f-date').value = d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+  })();
+
+  $('go-add').addEventListener('click', function () {
+    if (!$('f-client').value.trim()) { alert('고객명을 입력해주세요.'); $('f-client').focus(); return; }
+    show('add');
+  });
+  $('go-list').addEventListener('click', function () { show('list'); });
+
+  // ── STEP 2 ──────────────────────────────────────────────────────────
+  var selectedSpace = '';
+  (function buildChips() {
+    var box = $('space-chips');
+    SPACES.forEach(function (s) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'chip';
+      b.textContent = s;
+      b.setAttribute('aria-pressed', 'false');
+      b.addEventListener('click', function () {
+        selectedSpace = (selectedSpace === s) ? '' : s;
+        Array.prototype.forEach.call(box.children, function (c) {
+          c.setAttribute('aria-pressed', String(c.textContent === selectedSpace));
+        });
+        if (selectedSpace) $('f-space-custom').value = '';
+      });
+      box.appendChild(b);
+    });
+  })();
+
+  $('f-space-custom').addEventListener('input', function () {
+    if (this.value.trim()) {
+      selectedSpace = '';
+      Array.prototype.forEach.call($('space-chips').children, function (c) {
+        c.setAttribute('aria-pressed', 'false');
+      });
+    }
+  });
+
+  $('btn-camera').addEventListener('click', function () { $('in-camera').click(); });
+  $('btn-gallery').addEventListener('click', function () { $('in-gallery').click(); });
+  $('in-camera').addEventListener('change', onPhoto);
+  $('in-gallery').addEventListener('change', onPhoto);
+  $('btn-retake').addEventListener('click', clearPhoto);
+
+  function onPhoto(e) {
+    var file = e.target.files && e.target.files[0];
+    e.target.value = '';
+    if (!file) return;
+    if (!file.type.startsWith('image/')) { alert('이미지 파일이 아닙니다.'); return; }
+    if (cur.url) URL.revokeObjectURL(cur.url);
+    cur.file = file;
+    cur.url = URL.createObjectURL(file);
+    $('photo-img').src = cur.url;
+    $('photo-empty').hidden = true;
+    $('photo-shot').hidden = false;
+  }
+
+  function clearPhoto() {
+    if (cur.url) URL.revokeObjectURL(cur.url);
+    cur = { url: '', file: null };
+    $('photo-img').removeAttribute('src');
+    $('photo-empty').hidden = false;
+    $('photo-shot').hidden = true;
+  }
+
+  function resetItemForm() {
+    selectedSpace = '';
+    Array.prototype.forEach.call($('space-chips').children, function (c) {
+      c.setAttribute('aria-pressed', 'false');
+    });
+    $('f-space-custom').value = '';
+    $('f-w').value = ''; $('f-d').value = ''; $('f-h').value = '';
+    $('f-memo').value = '';
+    clearPhoto();
+  }
+
+  $('btn-save-item').addEventListener('click', function () {
+    var space = selectedSpace || $('f-space-custom').value.trim();
+    if (!space) { alert('공간을 선택하거나 직접 입력해주세요.'); return; }
+    if (!cur.file) { alert('사진을 촬영해주세요.'); return; }
+
+    items.push({
+      id: String(Date.now()) + Math.random().toString(16).slice(2),
+      space: space,
+      file: cur.file,
+      url: cur.url,
+      width: $('f-w').value.trim(),
+      depth: $('f-d').value.trim(),
+      height: $('f-h').value.trim(),
+      memo: $('f-memo').value.trim()
+    });
+    cur = { url: '', file: null };   // url 소유권을 items로 넘김
+    $('photo-img').removeAttribute('src');
+    $('photo-empty').hidden = false;
+    $('photo-shot').hidden = true;
+    resetItemForm();
+    show('list');
+  });
+
+  $('add-back').addEventListener('click', function () {
+    var dirty = cur.file || selectedSpace || $('f-space-custom').value.trim()
+      || $('f-w').value || $('f-d').value || $('f-h').value || $('f-memo').value.trim();
+    if (dirty && !confirm('입력 중인 내용이 사라집니다.\n계속 하시겠습니까?')) return;
+    resetItemForm();
+    show(items.length ? 'list' : 'info');
+  });
+
+  // ── STEP 3 ──────────────────────────────────────────────────────────
+  $('btn-more').addEventListener('click', function () { show('add'); });
+  $('list-back').addEventListener('click', function () { show('info'); });
+
+  function sizeParts(item) {
+    var out = [];
+    if (item.width)  out.push(['W', item.width]);
+    if (item.depth)  out.push(['D', item.depth]);
+    if (item.height) out.push(['H', item.height]);
+    return out;
+  }
+
+  function renderList() {
+    var ul = $('item-list');
+    ul.textContent = '';
+    items.forEach(function (item, i) {
+      var li = document.createElement('li');
+      li.className = 'card';
+
+      var thumb = document.createElement('div');
+      thumb.className = 'thumb';
+      var img = document.createElement('img');
+      img.src = item.url;
+      img.alt = item.space + ' 사진';
+      thumb.appendChild(img);
+
+      var body = document.createElement('div');
+      body.className = 'body';
+
+      var top = document.createElement('div');
+      top.className = 'top';
+      var badge = document.createElement('span');
+      badge.className = 'badge';
+      badge.textContent = '#' + (i + 1);
+      var sp = document.createElement('span');
+      sp.className = 'space';
+      sp.textContent = item.space;
+      var del = document.createElement('button');
+      del.type = 'button';
+      del.className = 'del';
+      del.textContent = '삭제';
+      del.addEventListener('click', function () {
+        if (!confirm('#' + (i + 1) + ' ' + item.space + ' 항목을 지울까요?')) return;
+        URL.revokeObjectURL(item.url);
+        items.splice(i, 1);
+        renderList();
+        syncCounts();
+      });
+      top.appendChild(badge); top.appendChild(sp); top.appendChild(del);
+
+      var sizes = document.createElement('div');
+      sizes.className = 'sizes';
+      var parts = sizeParts(item);
+      if (parts.length) {
+        parts.forEach(function (p) {
+          var s = document.createElement('span');
+          var b = document.createElement('b');
+          b.textContent = p[0];
+          s.appendChild(b);
+          s.appendChild(document.createTextNode(' ' + Number(p[1]).toLocaleString()));
+          var u = document.createElement('i');
+          u.textContent = ' mm';
+          s.appendChild(u);
+          sizes.appendChild(s);
+        });
+      } else {
+        var none = document.createElement('span');
+        none.style.color = '#bbb';
+        none.style.fontWeight = '400';
+        none.textContent = '사이즈 미입력';
+        sizes.appendChild(none);
+      }
+
+      body.appendChild(top);
+      body.appendChild(sizes);
+      if (item.memo) {
+        var m = document.createElement('div');
+        m.className = 'memo';
+        m.textContent = item.memo;
+        body.appendChild(m);
+      }
+
+      li.appendChild(thumb);
+      li.appendChild(body);
+      ul.appendChild(li);
+    });
+
+    $('list-empty').hidden = items.length > 0;
+    $('btn-pdf').disabled = items.length === 0;
+    $('list-title').textContent = $('f-client').value.trim() || '측정 목록';
+  }
+
+  // ── 사진 축소 ───────────────────────────────────────────────────────
+  function loadResized(url) {
+    return new Promise(function (resolve) {
+      var img = new Image();
+      img.onload = function () {
+        var nw = img.naturalWidth, nh = img.naturalHeight;
+        if (!nw || !nh) { resolve(null); return; }
+        var r = Math.min(1, PHOTO_MAX_DIM / Math.max(nw, nh));
+        var cw = Math.max(1, Math.round(nw * r));
+        var ch = Math.max(1, Math.round(nh * r));
+        var c = document.createElement('canvas');
+        c.width = cw; c.height = ch;
+        c.getContext('2d').drawImage(img, 0, 0, cw, ch);
+        resolve({ canvas: c, w: cw, h: ch });
+      };
+      img.onerror = function () { resolve(null); };
+      img.src = url;
+    });
+  }
+
+  // 박스 안에 원본 비율 유지하며 맞추기 (contain — 잘리지 않음)
+  function fitContain(w, h, boxW, boxH) {
+    if (!w || !h) return { w: boxW, h: boxH };
+    var r = Math.min(boxW / w, boxH / h);
+    return { w: Math.round(w * r), h: Math.round(h * r) };
+  }
+
+  // ── 캔버스 그리기 헬퍼 ──────────────────────────────────────────────
+  function rr(ctx, x, y, w, h, r) {
+    if (ctx.roundRect) { ctx.beginPath(); ctx.roundRect(x, y, w, h, r); return; }
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  }
+
+  function font(ctx, weight, size) { ctx.font = weight + ' ' + size + 'px ' + FONT; }
+
+  function clip(ctx, text, maxW) {
+    if (ctx.measureText(text).width <= maxW) return text;
+    var t = text;
+    while (t.length > 1 && ctx.measureText(t + '…').width > maxW) t = t.slice(0, -1);
+    return t + '…';
+  }
+
+  // 최대 두 줄로 감싸고 넘치면 말줄임
+  function wrap2(ctx, text, maxW) {
+    var lines = [], line = '';
+    for (var i = 0; i < text.length; i++) {
+      var next = line + text[i];
+      if (ctx.measureText(next).width > maxW && line) {
+        lines.push(line);
+        line = text[i];
+        if (lines.length === 2) break;
+      } else {
+        line = next;
+      }
+    }
+    if (lines.length < 2 && line) lines.push(line);
+    if (lines.length === 2 && ctx.measureText(lines[1]).width > maxW) lines[1] = clip(ctx, lines[1], maxW);
+    return lines;
+  }
+
+  // ── A4 한 페이지 그리기 ─────────────────────────────────────────────
+  function drawPage(report, pageItems, pageNum, totalPages, imgs, startIdx) {
+    var c = document.createElement('canvas');
+    c.width = A4_W * SCALE;
+    c.height = A4_H * SCALE;
+    var ctx = c.getContext('2d');
+    ctx.scale(SCALE, SCALE);
+    ctx.textBaseline = 'top';
+
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, 0, A4_W, A4_H);
+
+    // ── 헤더 ──
+    font(ctx, '900', 18);
+    ctx.fillStyle = '#1a1a1a';
+    ctx.textAlign = 'left';
+    ctx.fillText('자택방문 실측 보고서', MARGIN, MARGIN);
+
+    font(ctx, '400', 11);
+    ctx.fillStyle = '#777';
+    // 주소가 길어도 날짜·담당자는 남도록, 넘칠 때 주소만 줄인다
+    var SEP = '  ·  ';
+    var tail = [report.visitDate, report.designerName ? '담당: ' + report.designerName : ''].filter(Boolean);
+    var head = [report.clientName].filter(Boolean);
+    var metaMaxW = A4_W - MARGIN * 2 - 140;
+    var meta;
+    if (report.address) {
+      var others = head.concat(tail).join(SEP);
+      var room = metaMaxW - ctx.measureText(others + SEP).width;
+      meta = head.concat([clip(ctx, report.address, Math.max(70, room))], tail).join(SEP);
+    } else {
+      meta = head.concat(tail).join(SEP);
+    }
+    ctx.fillText(clip(ctx, meta, metaMaxW), MARGIN, MARGIN + 25);
+
+    ctx.textAlign = 'right';
+    if (report.team) {
+      font(ctx, '700', 10);
+      ctx.fillStyle = '#9c2c2c';
+      ctx.fillText(clip(ctx, report.team, 200), A4_W - MARGIN, MARGIN + 12);
+    }
+    font(ctx, '400', 10);
+    ctx.fillStyle = '#aaa';
+    ctx.fillText('PAGE ' + pageNum + ' / ' + totalPages, A4_W - MARGIN, MARGIN + 27);
+    ctx.textAlign = 'left';
+
+    ctx.fillStyle = '#9c2c2c';
+    ctx.fillRect(MARGIN, MARGIN + 49, A4_W - MARGIN * 2, 2.5);
+
+    // ── 2×2 그리드 ──
+    for (var i = 0; i < ITEMS_PER_PAGE; i++) {
+      var col = i % 2, row = Math.floor(i / 2);
+      var x = MARGIN + col * (CELL_W + GAP);
+      var y = GRID_TOP + row * (CELL_H + GAP);
+      var item = pageItems[i];
+
+      if (!item) {                                   // 빈 셀
+        ctx.fillStyle = '#fafafa';
+        rr(ctx, x, y, CELL_W, CELL_H, 6); ctx.fill();
+        ctx.strokeStyle = '#ececec';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([4, 4]);
+        rr(ctx, x + 0.5, y + 0.5, CELL_W - 1, CELL_H - 1, 6); ctx.stroke();
+        ctx.setLineDash([]);
+        continue;
+      }
+
+      // 셀 배경 + 테두리
+      ctx.fillStyle = '#fff';
+      rr(ctx, x, y, CELL_W, CELL_H, 6); ctx.fill();
+      ctx.save();
+      rr(ctx, x, y, CELL_W, CELL_H, 6); ctx.clip();
+
+      // 사진 영역
+      ctx.fillStyle = '#f4f4f4';
+      ctx.fillRect(x, y, CELL_W, PHOTO_H);
+      var im = imgs[startIdx + i];
+      if (im) {
+        var fit = fitContain(im.w, im.h, CELL_W, PHOTO_H);
+        ctx.drawImage(im.canvas,
+          x + (CELL_W - fit.w) / 2, y + (PHOTO_H - fit.h) / 2, fit.w, fit.h);
+      } else {
+        font(ctx, '400', 11);
+        ctx.fillStyle = '#ccc';
+        ctx.textAlign = 'center';
+        ctx.fillText('NO IMAGE', x + CELL_W / 2, y + PHOTO_H / 2 - 7);
+        ctx.textAlign = 'left';
+      }
+
+      // 구분선
+      ctx.fillStyle = '#f0f0f0';
+      ctx.fillRect(x, y + PHOTO_H, CELL_W, 1);
+
+      // 정보 영역
+      var ix = x + 10, iy = y + PHOTO_H + 9, iw = CELL_W - 20;
+
+      font(ctx, '700', 9);
+      var num = '#' + (startIdx + i + 1);
+      var bw = ctx.measureText(num).width + 12;
+      ctx.fillStyle = '#9c2c2c';
+      rr(ctx, ix, iy, bw, 15, 4); ctx.fill();
+      ctx.fillStyle = '#fff';
+      ctx.fillText(num, ix + 6, iy + 3);
+
+      font(ctx, '800', 13);
+      ctx.fillStyle = '#1a1a1a';
+      ctx.fillText(clip(ctx, item.space, iw - bw - 8), ix + bw + 6, iy + 1);
+
+      var parts = sizeParts(item);
+      var sy = iy + 27;
+      if (parts.length) {
+        var sx = ix;
+        parts.forEach(function (p) {
+          font(ctx, '800', 14);
+          ctx.fillStyle = '#9c2c2c';
+          ctx.fillText(p[0], sx, sy);
+          sx += ctx.measureText(p[0]).width + 4;
+          var val = Number(p[1]).toLocaleString();
+          font(ctx, '700', 14);
+          ctx.fillStyle = '#555';
+          ctx.fillText(val, sx, sy);
+          sx += ctx.measureText(val).width + 2;
+          font(ctx, '400', 11);
+          ctx.fillStyle = '#aaa';
+          ctx.fillText('mm', sx, sy + 3);
+          sx += ctx.measureText('mm').width + 14;
+        });
+      }
+
+      if (item.memo) {
+        font(ctx, '400', 10);
+        ctx.fillStyle = '#888';
+        var my = parts.length ? sy + 24 : sy;
+        wrap2(ctx, item.memo, iw).forEach(function (ln, k) {
+          ctx.fillText(ln, ix, my + k * 14);
+        });
+      }
+
+      ctx.restore();
+      ctx.strokeStyle = '#e0e0e0';
+      ctx.lineWidth = 1;
+      rr(ctx, x + 0.5, y + 0.5, CELL_W - 1, CELL_H - 1, 6); ctx.stroke();
+    }
+
+    // ── 푸터 ──
+    ctx.fillStyle = '#f0f0f0';
+    ctx.fillRect(MARGIN, A4_H - 38, A4_W - MARGIN * 2, 1);
+    font(ctx, '400', 9);
+    ctx.fillStyle = '#ccc';
+    ctx.fillText([report.team, '자택방문 실측 보고서'].filter(Boolean).join(' · '), MARGIN, A4_H - 30);
+    ctx.textAlign = 'right';
+    ctx.fillText(report.visitDate, A4_W - MARGIN, A4_H - 30);
+    ctx.textAlign = 'left';
+
+    return c;
+  }
+
+  // ── PDF 만들기 ──────────────────────────────────────────────────────
+  function openSheet(state) {
+    $('pdf-sheet').hidden = false;
+    $('pdf-busy').hidden = state !== 'busy';
+    $('pdf-done').hidden = state !== 'done';
+    $('pdf-error').hidden = state !== 'error';
+  }
+  function closeSheet() { $('pdf-sheet').hidden = true; }
+  $('btn-close-sheet').addEventListener('click', closeSheet);
+  $('btn-close-sheet2').addEventListener('click', closeSheet);
+
+  $('btn-pdf').addEventListener('click', async function () {
+    if (!items.length) return;
+    if (!window.jspdf || !window.jspdf.jsPDF) {
+      openSheet('error');
+      $('pdf-error-msg').textContent = 'PDF 라이브러리를 불러오지 못했습니다. 인터넷 연결을 확인하고 페이지를 새로고침해주세요.';
+      return;
+    }
+
+    pdfBlob = null;
+    openSheet('busy');
+
+    var report = {
+      clientName: $('f-client').value.trim(),
+      address: $('f-addr').value.trim(),
+      designerName: $('f-designer').value.trim(),
+      team: $('f-team').value.trim(),
+      visitDate: $('f-date').value
+    };
+    pdfName = ['실측', report.clientName || '보고서', report.visitDate].filter(Boolean).join('_') + '.pdf';
+
+    try {
+      // 글꼴이 준비되어야 캔버스 글자가 제대로 그려집니다.
+      if (document.fonts && document.fonts.ready) { await document.fonts.ready; }
+
+      var imgs = [];
+      for (var i = 0; i < items.length; i++) {
+        $('pdf-progress').textContent = '사진 정리 중 ' + (i + 1) + ' / ' + items.length;
+        imgs.push(await loadResized(items[i].url));
+      }
+
+      var pages = [];
+      for (var j = 0; j < items.length; j += ITEMS_PER_PAGE) pages.push(items.slice(j, j + ITEMS_PER_PAGE));
+
+      var pdf = new window.jspdf.jsPDF('p', 'mm', 'a4');
+      for (var p = 0; p < pages.length; p++) {
+        $('pdf-progress').textContent = '페이지 만드는 중 ' + (p + 1) + ' / ' + pages.length;
+        await new Promise(function (r) { setTimeout(r, 0); });
+        if (p > 0) pdf.addPage();
+        var canvas = drawPage(report, pages[p], p + 1, pages.length, imgs, p * ITEMS_PER_PAGE);
+        pdf.addImage(canvas.toDataURL('image/jpeg', 0.92), 'JPEG', 0, 0, 210, 297);
+      }
+
+      pdfBlob = pdf.output('blob');
+      $('pdf-summary').textContent = pages.length + '페이지 · 가구 ' + items.length + '개 · '
+        + Math.round(pdfBlob.size / 1024) + 'KB';
+      openSheet('done');
+    } catch (e) {
+      openSheet('error');
+      $('pdf-error-msg').textContent = '사진이 많거나 용량이 크면 실패할 수 있습니다. 항목을 줄여서 다시 시도해주세요. (' + (e && e.message ? e.message : e) + ')';
+    }
+  });
+
+  function downloadPdf() {
+    if (!pdfBlob) return;
+    var url = URL.createObjectURL(pdfBlob);
+    var a = document.createElement('a');
+    a.href = url; a.download = pdfName;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+  }
+  $('btn-download').addEventListener('click', downloadPdf);
+
+  // 공유 — 미리 만들어둔 blob을 쓰기 때문에 터치 즉시 공유창이 뜹니다.
+  $('btn-share').addEventListener('click', async function () {
+    if (!pdfBlob) return;
+    var file = new File([pdfBlob], pdfName, { type: 'application/pdf' });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      try {
+        await navigator.share({ files: [file], title: pdfName });
+      } catch (e) {
+        if (!e || e.name !== 'AbortError') downloadPdf();   // 사용자가 취소한 게 아니면 다운로드
+      }
+    } else {
+      downloadPdf();
+    }
+  });
+
+  // 작업 중 실수로 창을 닫는 것 방지
+  window.addEventListener('beforeunload', function (e) {
+    if (!items.length) return;
+    e.preventDefault();
+    e.returnValue = '';
+  });
+
+  syncCounts();
+})();
+</script>
+</body>
+</html>
