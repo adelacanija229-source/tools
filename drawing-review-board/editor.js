@@ -357,6 +357,7 @@ function loadCompanyWebsite() {
 function saveCompanyWebsite(url = companyWebsite) {
   localStorage.setItem(COMPANY_WEBSITE_KEY, url);
 }
+
 function renderCompanyCard() {
   return `
     <div class="company-card">
@@ -632,6 +633,7 @@ function renderBoardReferences() {
         .join("")
     : `<p class="reference-empty">Add a reference board for this canvas.</p>`;
 }
+
 function renderCanvas() {
   const board = getActiveBoard();
   const items = board.items
@@ -856,6 +858,7 @@ function renderReferences() {
     </div>
   `;
 }
+
 function openNameDialog(options) {
   nameDialogAction = options;
   nameModalEyebrow.textContent = options.eyebrow || "Workspace";
@@ -1120,6 +1123,7 @@ function loadSavedLayout() {
   render();
   showToast("Saved layout loaded.");
 }
+
 function addItem(typeId = "material") {
   const board = getActiveBoard();
   const id = `item-${Date.now()}`;
@@ -1329,6 +1333,7 @@ function openItemLink(itemId) {
   }
   window.open(url, "_blank", "noopener,noreferrer");
 }
+
 function renderLinkModal() {
   const list = document.querySelector("#linkList");
   const item = getActiveItem();
@@ -1604,6 +1609,7 @@ function handleFieldEdit(event) {
     renderCanvas();
   }
 }
+
 function optimizeImageFile(file, onComplete, options = {}) {
   const reader = new FileReader();
   reader.onload = () => {
@@ -1941,6 +1947,7 @@ function showToast(message) {
   clearTimeout(showToast.timer);
   showToast.timer = setTimeout(() => toast.classList.remove("is-visible"), 2200);
 }
+
 projectSelect.addEventListener("change", (event) => {
   activeProjectId = event.target.value;
   activeBoardId = getActiveProject().boards[0]?.id || null;
