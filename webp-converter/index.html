@@ -395,14 +395,38 @@
           showError(file.name, '변환에 실패했습니다. 사진 크기가 너무 크면 실패할 수 있으니, 조금 작은 사진으로 다시 시도해주세요.');
           return;
         }
-        render(li, blob, file, scaled, w, h);
+        // 아이폰 사진 앱은 WebP를 못 받습니다. 눌렀을 때 바로 공유되도록
+        // JPG 사본을 미리 만들어 둡니다(터치 순간에 만들면 iOS가 공유를 막습니다).
+        if (!CAN_WEBP) { render(li, blob, null, file, scaled, w, h); return; }
+        canvas.toBlob(function (jpg) {
+          render(li, blob, jpg, file, scaled, w, h);
+        }, 'image/jpeg', parseFloat(qualityEl.value));
       }, OUT_MIME, parseFloat(qualityEl.value));
     };
 
     img.src = thumbUrl;
   }
 
-  function render(li, blob, file, scaled, w, h) {
+  // 공유 시트가 되면 공유로, 안 되면 일반 다운로드로 저장합니다.
+  function saveOrShare(blob, name, mime) {
+    try {
+      const f = new File([blob], name, { type: mime });
+      if (navigator.canShare && navigator.canShare({ files: [f] })) {
+        navigator.share({ files: [f], title: name }).catch(function () {});
+        return;
+      }
+    } catch (e) { /* 공유 불가 환경은 아래로 */ }
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+  }
+
+  function render(li, blob, jpgBlob, file, scaled, w, h) {
     const outName = file.name.replace(/\.[^.]+$/, '') + '.' + OUT_EXT;
     const url = URL.createObjectURL(blob);
     const saved = Math.max(0, Math.round((1 - blob.size / file.size) * 100));
@@ -415,7 +439,7 @@
     const notes = [];
     if (scaled) notes.push('사진이 커서 ' + w + '×' + h + ' 로 줄여 변환했습니다.');
     if (!CAN_WEBP) notes.push('이 브라우저는 WebP 저장을 지원하지 않아 <b>JPG</b>로 변환했습니다.');
-    if (IS_IOS) notes.push('아이폰은 사진 앱이 WebP를 지원하지 않습니다. [저장/공유] 후 <b>"파일에 저장"</b>을 선택하세요.');
+    if (IS_IOS) notes.push('아이폰 사진 앱은 WebP를 받지 않습니다. 사진 앱에 넣으려면 <b>[JPG로 저장]</b>, WebP 그대로 두려면 [저장/공유] 후 <b>"파일에 저장"</b>을 고르세요.');
     if (notes.length) {
       const p = document.createElement('div');
       p.className = 'note';
@@ -448,6 +472,17 @@
     a.className = 'dl-btn' + (shared ? ' sub' : '');
     a.innerHTML = '⬇️ 다운로드';
     box.appendChild(a);
+
+    // WebP를 못 받는 곳(아이폰 사진 앱 등)을 위한 JPG 사본.
+    if (jpgBlob) {
+      const jname = file.name.replace(/\.[^.]+$/, '') + '.jpg';
+      const j = document.createElement('button');
+      j.type = 'button';
+      j.className = 'dl-btn sub';
+      j.innerHTML = '🖼 JPG로 저장 (' + fmtSize(jpgBlob.size) + ')';
+      j.addEventListener('click', function () { saveOrShare(jpgBlob, jname, 'image/jpeg'); });
+      box.appendChild(j);
+    }
 
     // 3순위: 아이폰에서 위 둘이 막혔을 때. 새 탭으로 열면 사파리 공유 버튼을 쓸 수 있습니다.
     if (IS_IOS) {
